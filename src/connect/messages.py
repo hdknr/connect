@@ -37,6 +37,12 @@ class TokenRevokeReq(object):
 class TokenRevokeRes(object):
     pass
 
+class TokenMetaReq(object):
+    pass
+
+class TokenMetaRes(object):
+    pass
+
 class UserInfoReq(object):
     pass
 
