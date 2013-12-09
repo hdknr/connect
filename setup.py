@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  This file is part of "oilliocp"
+#  This file is part of "connect"
 #
 #  mand is a Django based management interface for MySQL users and databases.
 #
@@ -56,7 +56,7 @@ from setuptools import setup
 
 # - Meta Info
 
-from oilliocp import get_version
+from connect import get_version
 
 SCRIPTS=glob.glob('src/scripts/*.py')
 try:
