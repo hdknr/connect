@@ -25,16 +25,17 @@ applog_rotated= django.dispatch.Signal(providing_args=["rotated_at", ])
 # ERROR     : Information describing a major problem that has occurred.
 # CRITICAL  : Information describing a critical problem that has occurred.
 
-
 _LOG_DIR = os.environ.get('DJ_LOGGER_DIR',
-        os.path.join( os.path.dirname(os.path.abspath(__file__)) ,'logs') 
+        os.path.join( os.getcwd(),'logs') 
     )   #:TODO: specify evnironment in LIVE
+if not os.path.isdir(_LOG_DIR):
+    os.makedirs( _LOG_DIR )
 
 _LOG_FILE = lambda signature : os.path.join( _LOG_DIR,signature +".log" )
 
 _LOG_ROOT = {
         'handlers': ['file'],
-        'level': os.environ.get('DJ_LOGGER_LEVEL','DEBUG'),               #:TODO: other than DEBUG on LIVE
+        'level': os.environ.get('DJ_LOGGER_LEVEL','DEBUG'),  #:TODO: other than DEBUG on LIVE
         'propagate': True, }
 
 _LOG_FORMATTERS = { 
@@ -73,7 +74,7 @@ class AppFileLogHandler(TimedRotatingFileHandler):
         super(AppFileLogHandler,self).doRollover()
         #:
         try:
-            applog_rotated.send( self,rotated_at = now() )    #:シグナル送ります
+            applog_rotated.send( self,rotated_at = now() )    #:send a signal
         except:
             syslog.openlog('APP')
             syslog.syslog(syslog.LOG_ALERT, traceback.format_exc() )
