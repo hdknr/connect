@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db.models  import  get_app,get_models
 
-from models import *
+#from models import *
 
 for model in get_models( get_app("providers")) :   
     admin_class = type( "%sAdmin" % model.__name__,

@@ -49,10 +49,35 @@ class Resource(models.Model):
         verbose_name = _(u'OAuth Protected Resource')
         verbose_name_plural = _(u'OAuth Protected Resources')
 
+    #: uri: forward match : /users/ and /users/10/ are covered by the same Resource
+
+class AccessControl(models.Model):
+    owner = models.ForeignKey(User)
+    resource = models.ForeignKey(Resource)
+    #
+    accessor = models.ForeignKey(User,
+                 related_name="accessor_set",null=True,blank=True,default=None,)
+    server= models.ForeignKey(Server,
+                 related_name="server_set",null=True,blank=True,default=None,)
+
+    class Meta:
+        abstract = True
+
+
+class Allow(AccessControl):
+    class Meta:
+        verbose_name = _(u'Resource Allow')
+        verbose_name_plural = _(u'Resource Allows')
+
+class Deny(AccessControl):
+    class Meta:
+        verbose_name = _(u'Resource Deny')
+        verbose_name_plural = _(u'Resource Denies')
+
 class Session(AbstractIdToken):
     provider = models.ForeignKey(Provider) 
     client   = models.ForeignKey(Client)
-    user     = models.ForeignKey(User) 
+    user     = models.ForeignKey(User,related_name="providers_session_set") 
     class Meta:
         verbose_name = _(u'OpenID Session')
         verbose_name_plural = _(u'OpenID Session')
