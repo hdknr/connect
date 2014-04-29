@@ -9,19 +9,22 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 """
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import os,sys
+import os
+import sys
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 ################################################################
-DBENGINE=os.environ.get('DBENGINE',"mysql" )
-DJ_DB_OPTIONS = {} if 'test' in sys.argv else { 
-        'init_command': 'SET storage_engine=INNODB;'     
-}
-VENV=os.path.basename(os.environ.get('VIRTUAL_ENV',''))
-DEFAULT_DBNAME= "connect_%s" % ( VENV or 'db')
-if DBENGINE=="sqlite3":
-    DEFAULT_DBNAME= os.path.join(BASE_DIR,"%s.sqlite3" %  DEFAULT_DBNAME )
+DBENGINE = os.environ.get('DBENGINE', "mysql")
+VENV = os.path.basename(os.environ.get('VIRTUAL_ENV', ''))
+DEFAULT_DBNAME = "connect_%s" % (VENV or 'db')
+if DBENGINE == "sqlite3":
+    DEFAULT_DBNAME = os.path.join(BASE_DIR, "%s.sqlite3" % DEFAULT_DBNAME)
+    DJ_DB_OPTIONS = {}
+else:
+    DJ_DB_OPTIONS = {} if 'test' in sys.argv else {
+        'init_command': 'SET storage_engine=INNODB;'
+    }
 
-ALLOWED_HOSTS = ['connect.deb',]
+ALLOWED_HOSTS = ['connect.deb', ]
 ################################################################
 
 
@@ -68,12 +71,12 @@ WSGI_APPLICATION = 'app.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.%s' % DBENGINE,
-        'NAME': os.environ.get('DJ_DB_NAME',DEFAULT_DBNAME),
-        'USER': os.environ.get('DJ_DB_USER',DEFAULT_DBNAME),
-        'PASSWORD': os.environ.get('DJ_DB_PASSWORD',DEFAULT_DBNAME),
-        'HOST': os.environ.get('DJ_DB_HOST','localhost'),
-        'PORT': '',                      
-        'TEST_CHARSET': 'utf8',    
+        'NAME': os.environ.get('DJ_DB_NAME', DEFAULT_DBNAME),
+        'USER': os.environ.get('DJ_DB_USER', DEFAULT_DBNAME),
+        'PASSWORD': os.environ.get('DJ_DB_PASSWORD', DEFAULT_DBNAME),
+        'HOST': os.environ.get('DJ_DB_HOST', 'localhost'),
+        'PORT': '',
+        'TEST_CHARSET': 'utf8',
         'TEST_DATABASE_COLLATION': 'utf8_general_ci',
         'OPTIONS': DJ_DB_OPTIONS,
     }
@@ -97,15 +100,20 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 ########################################################################
-STATIC_ROOT = os.path.join( BASE_DIR,'static')
-try:
-    from app.logs import *
-except Exception,ex:
-    print "@@@",ex
-    pass
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+#try:
+#    from app.logs import *
+#except Exception,ex:
+#    print "@@@",ex
+#    pass
 
 INSTALLED_APPS += (
-    'connect.providers',
-    'connect.servers',
-    'connect.clients',
+    'connect',
+    'connect.az',
+    'connect.rp',
+    'tastypie',
+    'issues',
+    'todos',
 )
+if 'test' not in sys.argv:
+    INSTALLED_APPS += ('south', )

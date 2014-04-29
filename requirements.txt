@@ -1,5 +1,6 @@
 Django
 MySQL-python
+pysqlite
 Sphinx
 Werkzeug
 south
@@ -7,11 +8,10 @@ libsass
 django_compressor
 jcconv
 django-extensions
-PIL
+Pillow
 requests
 furl
-pysqlite
 pykf
 Markdown
 ordereddict
-pwgen
+django-tastypie

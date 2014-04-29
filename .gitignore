@@ -1,3 +1,6 @@
 *.pyc
 *.egg-info
 logs
+*.sqlite3
+.*.swp
+migrations
