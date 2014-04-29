@@ -1,5 +1,6 @@
 from . import SingletonResource, ObjectSerializer
 from connect.messages.finger import Jrd, Link
+import requests
 
 
 class FingerResource(SingletonResource):
@@ -28,3 +29,12 @@ class FingerResource(SingletonResource):
                             href="https://hoge.com")],
             )
         return Jrd()
+
+
+class FingerClient(object):
+    def call(self, server, resource, rel):
+        r = requests.get(
+            FingerResource.url(server),
+            params=dict(resource=resource, rel=rel),
+            headers={"Accept": 'application/jrd+json, application/json'})
+        return Jrd.from_json(r.content)

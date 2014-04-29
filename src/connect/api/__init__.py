@@ -30,7 +30,10 @@ class SingletonResource(Resource):
     @classmethod
     def url(cls, host='', *args, **kwargs):
         kwargs['resource_name'] = cls.Meta.resource_name
-        return urlparse.urljoin(host, reverse(cls.url_name(), kwargs=kwargs))
+        kwargs = dict(
+            tuple([(k, v) for k, v in kwargs.items() if v is not None]))
+        ret = urlparse.urljoin(host, reverse(cls.url_name(), kwargs=kwargs))
+        return ret
 
 
 class ObjectSerializer(Serializer):

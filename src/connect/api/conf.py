@@ -1,5 +1,6 @@
 from . import SingletonResource, ObjectSerializer
-from connect.messages.meta import ProviderMeta
+from connect.messages.discovery import ProviderMeta
+import requests
 
 
 class ConfResource(SingletonResource):
@@ -11,4 +12,15 @@ class ConfResource(SingletonResource):
         serializer = ObjectSerializer(formats=['json'])
 
     def obj_get(self, bundle, tenant=None, *args, **kwargs):
-        return ProviderMeta(issuer="me")
+        ret = ProviderMeta(issuer="me")
+        if tenant:
+            ret['tenant'] = tenant
+        return ret
+
+
+class ConfClient(object):
+    def call(self, server, **kwargs):
+        r = requests.get(
+            ConfResource.url(server, **kwargs),
+            headers={"Accept": 'application/json'})
+        return ProviderMeta.from_json(r.content)

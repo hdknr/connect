@@ -15,7 +15,7 @@ urlpatterns = patterns(
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^az/', include('connect.az.urls')),
+    url(r'^connect/az/', include('connect.az.urls')),
     url(r'issues/api/', include(IssueResource().urls)),
     url(r'', include('connect.api.wellknowns')),
 )
