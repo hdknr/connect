@@ -16,21 +16,7 @@ urlpatterns = patterns(
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     url(r'^connect/az/', include('connect.az.urls')),
+    url(r'^connect/rp/', include('connect.rp.urls')),
     url(r'issues/api/', include(IssueResource().urls)),
     url(r'', include('connect.api.wellknowns')),
 )
-#
-#from django.conf import settings
-#if settings.DEBUG:
-#    urlpatterns += patterns('',
-#
-#        url(r'^static/(?P<path>.*)$', 'django.views.static.serve', {
-#            'document_root': settings.STATIC_ROOT,
-#            'show_indexes': True,
-#        }),
-#        url(r'^(?P<path>favicon.+)$', 'django.views.static.serve', {
-#            'document_root': settings.STATIC_ROOT,
-#            'show_indexes': True,
-#        }),
-#   )
-#

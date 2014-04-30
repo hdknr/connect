@@ -1,6 +1,10 @@
 from . import SingletonResource, ObjectSerializer
 from connect.messages.discovery import ProviderMeta
+from connect.az.models import Authority
 import requests
+import urlparse
+from django.core.urlresolvers import reverse
+import traceback
 
 
 class ConfResource(SingletonResource):
@@ -12,9 +16,23 @@ class ConfResource(SingletonResource):
         serializer = ObjectSerializer(formats=['json'])
 
     def obj_get(self, bundle, tenant=None, *args, **kwargs):
-        ret = ProviderMeta(issuer="me")
-        if tenant:
-            ret['tenant'] = tenant
+        iss = bundle.request.build_absolute_uri('/%s' % (tenant or ''))
+
+        try:
+            authority, created = Authority.objects.get_or_create(
+                identifier=iss, tenant=tenant)
+            if created:
+                # TODO: set default provider meta and save model
+                # TODO: , if authomaticall create provider.
+                pass
+
+            ret = authority.openid_configuration
+
+            ret.authorization_endpoint = urlparse.urljoin(
+                ret.issuer, reverse('az_req'))
+        except:
+            print traceback.format_exc()
+
         return ret
 
 

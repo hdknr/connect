@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-
-from ..models import (
+from connect.models import (
     AbstractAuthority,
     AbstractRelyingParty,
     AbstractIdentity,
@@ -14,7 +13,19 @@ from ..models import (
 
 class Authority(AbstractAuthority):
     tenant = models.CharField(
-        _(u'Tenant'), max_length=50, unique=True, db_index=True,)
+        _(u'Tenant'), default=None,
+        max_length=50, blank=True, null=True, db_index=True,)
+
+    class Meta:
+        unique_together = (('identifier', 'tenant'), )
+
+    @property
+    def openid_configuration(self):
+        meta = super(Authority, self).openid_configuration
+        meta.issuer = self.identifier
+        if self.tenant:
+            meta['tenant'] = self.tenant
+        return meta
 
 
 class RelyingParty(AbstractRelyingParty):

@@ -1,0 +1,9 @@
+<h1>Authoruzation Request</h1>
+
+<div>
+<form method="post" action="{% url 'rp_authreq' %}"> {% csrf_token %}
+{{ form }}
+    <div ><input type="submit" name="submit-server" value="OpenID"/></div>
+    <div ><input type="submit" name="submit-self" value="Self" /></div>
+</form>
+</div>

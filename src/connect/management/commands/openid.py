@@ -2,7 +2,6 @@
 from . import GenericCommand
 from connect.api.finger import FingerClient
 from connect.api.conf import ConfClient
-import requests
 
 
 class Command(GenericCommand):
@@ -16,4 +15,4 @@ class Command(GenericCommand):
 
     def command_conf(self, server, tenant=None, *args, **options):
         meta = ConfClient().call(server, tenant=tenant)
-        print meta.to_json()
+        print meta.to_json(indent=2)

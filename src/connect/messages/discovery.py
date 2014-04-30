@@ -41,3 +41,5 @@ class ProviderMeta(BaseObject):
         op_policy_uri=None,
         op_tos_uri=None,
     )
+
+    selfissued_issuer = "https://self-issued.me"
