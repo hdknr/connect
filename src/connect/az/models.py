@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from connect.models import (
+    AbstractKey,
     AbstractAuthority,
     AbstractRelyingParty,
     AbstractIdentity,
@@ -9,6 +10,11 @@ from connect.models import (
     AbstractScope,
     AbstractToken,
 )
+
+
+class Key(AbstractKey):
+    class Meta:
+        unique_together = (('owner', 'uri'), )
 
 
 class Authority(AbstractAuthority):

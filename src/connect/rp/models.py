@@ -6,6 +6,7 @@ from jose.utils import nonce, _BE
 import hashlib
 
 from ..models import (
+    AbstractKey,
     AbstractAuthority,
     AbstractRelyingParty,
     AbstractIdentity,
@@ -17,7 +18,13 @@ from ..models import (
 from connect.messages.reg import ClientMeta
 
 
+class Key(AbstractKey):
+    class Meta:
+        unique_together = (('owner', 'uri'), )
+
+
 class Authority(AbstractAuthority):
+    vender = models.CharField(_(u'Vender'), max_length=50)
     pass
 
 
@@ -55,16 +62,17 @@ class SignOn(AbstractSignOn):
     def create(cls, party, authreq=None):
         n = nonce('S')
         s = cls.state_from_nonce(n)
+        if authreq:
+            authreq.nonce = n
+            authreq.state = s
+
         signon = cls(
             authority=party.authority,
             party=party,
             nonce=n,
             state=s,
+            request=authreq and authreq.to_json(),
         )
-        if authreq:
-            authreq.nonce = signon.nonce
-            authreq.state = signon.state
-            signon.request = authreq.to_json()
         signon.save()
         return signon
 

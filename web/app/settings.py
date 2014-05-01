@@ -107,6 +107,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 #    print "@@@",ex
 #    pass
 
+os.environ['JOSE_CONFIGURATION_CLASS'] = 'app.confs.JoseConf'
+
 INSTALLED_APPS += (
     'connect',
     'connect.az',

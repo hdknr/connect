@@ -1,0 +1,7 @@
+<h1>Self Issued OP Authoruzation Request</h1>
+
+<div>
+<form method="post" action="{% url 'rp_auth' vender='self' action='req' mode='any' %}"> {% csrf_token %}
+    <div ><input type="submit" name="submit-self" value="Self" /></div>
+</form>
+</div>

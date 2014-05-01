@@ -4,7 +4,7 @@ from jose import BaseObject
 class ProviderMeta(BaseObject):
     ''' Discovery1.0 3.
     '''
-    _fileds = dict(
+    _fields = dict(
         issuer=None,
         authorization_endpoint=None,
         token_endpoint=None,
