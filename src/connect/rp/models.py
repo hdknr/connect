@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from jose.utils import nonce, _BE
 import hashlib
 
@@ -49,28 +50,28 @@ class RelyingParty(AbstractRelyingParty):
 
 
 class SignOn(AbstractSignOn):
-    nonce = models.CharField(
-        _('Nonce'), max_length=200, db_index=True, unique=True)
-    state = models.CharField(
-        _('State'), max_length=200, db_index=True, unique=True)
 
     @classmethod
     def state_from_nonce(cls, nonce):
         return _BE(hashlib.sha256(nonce + settings.SECRET_KEY).digest())
 
     @classmethod
-    def create(cls, party, authreq=None):
+    def create(cls, user, party, authreq=None):
         n = nonce('S')
         s = cls.state_from_nonce(n)
         if authreq:
             authreq.nonce = n
             authreq.state = s
 
+        if isinstance(user, AnonymousUser):
+            user = None
+
         signon = cls(
             authority=party.authority,
             party=party,
             nonce=n,
             state=s,
+            user=user,
             request=authreq and authreq.to_json(),
         )
         signon.save()

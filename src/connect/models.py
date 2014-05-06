@@ -117,15 +117,22 @@ class AbstractIdentity(models.Model):
     party = models.ForeignKey(
         'RelyingParty',
         related_name='%(app_label)s_%(class)s_related')
-    user = models.ForeignKey(
-        User,
-        related_name='%(app_label)s_%(class)s_related')
 
     subject = models.CharField(
         _(u'Subject'), max_length=200)
 
+    user = models.ForeignKey(
+        User,
+        related_name='%(app_label)s_%(class)s_related')
+
     class Meta:
         abstract = True
+
+    def __unicode__(self):
+        return "%s %s" % (
+            self.party and self.party.__unicode__() or '',
+            self.subject or ''
+        )
 
 
 class AbstractSignOn(models.Model):
@@ -137,10 +144,20 @@ class AbstractSignOn(models.Model):
         'RelyingParty',
         related_name='%(app_label)s_%(class)s_related')
 
+    subject = models.CharField(
+        _(u'Subject'), max_length=200,
+        null=True, blank=True, default=None,)
+
     user = models.ForeignKey(
         User,
         related_name='%(app_label)s_%(class)s_related',
         null=True, blank=True, default=None)
+
+    nonce = models.CharField(
+        _('Nonce'), max_length=200, db_index=True, unique=True)
+
+    state = models.CharField(
+        _('State'), max_length=200, db_index=True, unique=True)
 
     request = models.TextField(default='{}')
     response = models.TextField(default='{}')
@@ -161,6 +178,10 @@ class AbstractSignOn(models.Model):
     @authres.setter
     def authres(self, value):
         self.response = value.to_json()
+
+    @property
+    def identities(self):
+        return self.party.rp_identity_related.filter(subject=self.subject)
 
     class Meta:
         abstract = True

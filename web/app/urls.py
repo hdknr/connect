@@ -3,6 +3,7 @@ from django.contrib import admin
 admin.autodiscover()
 #
 from issues.api import IssueResource
+from todos import views
 
 urlpatterns = patterns(
     '',
@@ -19,4 +20,5 @@ urlpatterns = patterns(
     url(r'^connect/rp/', include('connect.rp.urls')),
     url(r'issues/api/', include(IssueResource().urls)),
     url(r'', include('connect.api.wellknowns')),
+    url(r'', views.default, name="top"),
 )

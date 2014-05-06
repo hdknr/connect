@@ -1,0 +1,6 @@
+<h1>Sign Up User</h1>
+
+<form method="post" action="{{form.url}}">{% csrf_token %}
+{{form}}
+ <input type="submit" name="submit" value="Sign Up"/>
+</form>

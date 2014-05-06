@@ -20,3 +20,9 @@
 
 <h3>IT Token </h3>
 <ul><li>{{ id_token_token }} </li></ul>
+
+<hr/>
+<form method="post" action="{{ bind.url }}">{% csrf_token %}
+{{ bind }}
+<input type="submit" name="submit" value="Bind Identity" />
+</form>

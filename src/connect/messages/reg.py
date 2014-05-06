@@ -39,6 +39,10 @@ class ClientMeta(BaseObject):
 _client_reg = dict(
     client_id=None,
     client_secret=None,
+    registration_access_token=None,
+    registration_client_uri=None,
+    client_id_issued_at=None,
+    client_secret_expires_at=None,
 )
 
 

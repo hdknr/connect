@@ -1,0 +1,6 @@
+{% for identity in identity_list %}
+<ol>
+  <li><a href="{% url 'rp_id_detail' id=identity.id %}">{{ identity.authority }} {{ identity.subject }} </a></li>
+</ol>
+
+{% endfor %}

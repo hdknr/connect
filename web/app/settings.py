@@ -13,7 +13,9 @@ import os
 import sys
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 ################################################################
-DBENGINE = os.environ.get('DBENGINE', "mysql")
+DBENGINE = os.environ.get(
+    'DBENGINE',
+    sys.argv[1] == 'runserver' and "sqlite3" or "mysql")
 VENV = os.path.basename(os.environ.get('VIRTUAL_ENV', ''))
 DEFAULT_DBNAME = "connect_%s" % (VENV or 'db')
 if DBENGINE == "sqlite3":
@@ -113,6 +115,7 @@ INSTALLED_APPS += (
     'connect',
     'connect.az',
     'connect.rp',
+    'connect.venders',
     'tastypie',
     'issues',
     'todos',
