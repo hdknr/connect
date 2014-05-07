@@ -6,6 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 from connect.messages.discovery import ProviderMeta
 from connect.messages.reg import ClientMeta, ClientReg
 from connect.messages.auth import AuthReq, AuthResCode
+from connect.messages.token import TokenResCode
+from connect.messages.id_token import IdToken
+from jose.jwk import JwkSet
+import requests
 
 
 _IDENTIFIER = dict(
@@ -22,8 +26,15 @@ class AbstractKey(models.Model):
         null=True, blank=True, default=None)
     keyset = models.TextField(default='{}')
 
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+
     class Meta:
         abstract = True
+
+    @property
+    def jwkset(self):
+        return JwkSet.from_json(self.keyset)
 
     def __unicode__(self):
         return self.owner + " " + self.uri or ''
@@ -39,13 +50,18 @@ class KeyOwner(models.Model):
             owner=self.__unicode__(),
             uri=uri)
         key.keyset = obj.to_json()
+        key.save()
 
     def load_object(self, obj_class, uri, *args, **kwargs):
         try:
-            return self.keys.get(
-                owner=self.__unicode__(),
-                uri=uri)
-        except:
+            q = dict(owner=self.__unicode__())
+            if uri:
+                q['uri'] = uri
+            keys = self.keys.filter(**q)
+            key = keys.count() > 0 and keys[0] or None
+            return key and key.jwkset
+        except Exception, ex:
+            print ex
             return None
 
     class Meta:
@@ -55,6 +71,9 @@ class KeyOwner(models.Model):
 class AbstractAuthority(KeyOwner):
     identifier = models.CharField(_(u'Identifier'), **_IDENTIFIER)
     auth_metadata = models.TextField(default='{}')      #: For OpenID Connect
+
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     def __unicode__(self):
         return self.identifier
@@ -76,6 +95,18 @@ class AbstractAuthority(KeyOwner):
     def openid_configuration(self, value):
         self.auth_metadata = value.to_json()
 
+    def update_key(self):
+        # TODO: SSL ann verify certificate.
+        jku = self.openid_configuration.jwks_uri
+        if jku:
+            res = requests.get(jku)
+            jwkset = JwkSet.from_json(res.content)
+            self.save_object(jwkset, jku)
+
+    def jwkset(self, jku=None):
+        jku = jku or self.openid_configuration.jwks_uri
+        return self.load_object(JwkSet, jku).jwkset
+
 
 class AbstractRelyingParty(KeyOwner):
     identifier = models.CharField(
@@ -86,6 +117,9 @@ class AbstractRelyingParty(KeyOwner):
         related_name='%(app_label)s_%(class)s_related')
     auth_metadata = models.TextField(default='{}')
     reg = models.TextField(_(u'Client Registration'), default='{}')
+
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     def __unicode__(self):
         return self.authority.identifier + " " + self.identifier
@@ -125,6 +159,9 @@ class AbstractIdentity(models.Model):
         User,
         related_name='%(app_label)s_%(class)s_related')
 
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+
     class Meta:
         abstract = True
 
@@ -159,8 +196,13 @@ class AbstractSignOn(models.Model):
     state = models.CharField(
         _('State'), max_length=200, db_index=True, unique=True)
 
+    verified = models.BooleanField(default=False)
     request = models.TextField(default='{}')
     response = models.TextField(default='{}')
+    tokens = models.TextField(default='{}')
+
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     @property
     def authreq(self):
@@ -183,6 +225,27 @@ class AbstractSignOn(models.Model):
     def identities(self):
         return self.party.rp_identity_related.filter(subject=self.subject)
 
+    @property
+    def access_token(self):
+        token_response = self.token_response
+        return token_response and token_response.access_token
+
+    @property
+    def id_token(self):
+        token_response = self.token_response
+        if token_response:
+            return IdToken.parse(
+                token_response.id_token,
+                sender=self.authority,
+                recipient=self.party)
+        return None
+
+    @property
+    def token_response(self):
+        if self.tokens:
+            return TokenResCode.from_json(self.tokens)
+        return None
+
     class Meta:
         abstract = True
 
@@ -190,6 +253,8 @@ class AbstractSignOn(models.Model):
 class AbstractScope(models.Model):
     scope = models.CharField(
         _(u'Scope'), max_length=250, unique=True,)
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     class Meta:
         abstract = True
@@ -204,6 +269,9 @@ class AbstractToken(models.Model):
     scopes = models.ManyToManyField(
         'Scope',
         related_name='%(app_label)s_%(class)s_related')
+
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     class Meta:
         abstract = True

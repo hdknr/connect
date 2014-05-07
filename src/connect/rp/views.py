@@ -60,14 +60,14 @@ def bind(request, signon=None):
         signon.user = request.user
         signon.save()
 
-        HttpResponseRedirect('/')       # TODO:
+        return HttpResponseRedirect('/')       # TODO:
 
     identities = signon.identities
     if identities.count() == 1:
         auth_login(request, identities[0].user)
         signon.user = request.user
         signon.save()
-        HttpResponseRedirect('/')       # TODO:
+        return HttpResponseRedirect('/')       # TODO:
 
     save_signon(request, signon)
 

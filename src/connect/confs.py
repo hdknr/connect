@@ -7,4 +7,4 @@ class Store(FileStore):
         owner.save_object(obj, id, *args, **kwargs)
 
     def load(self, obj_class, owner, id=None, *args, **kwargs):
-        owner.load_object(obj_class, id, *args, **kwargs)
+        return owner.load_object(obj_class, id, *args, **kwargs)

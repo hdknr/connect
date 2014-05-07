@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+'''
+Google "OAuth 2.0 for Login(OpenID Connect)"
+https://developers.google.com/accounts/docs/OAuth2Login
+'''
 from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.core.urlresolvers import reverse
@@ -23,7 +27,7 @@ def req_any(request):
 
         ruri = request.build_absolute_uri(
             reverse('rp_auth', kwargs=dict(
-                vender='azure', action='res', mode='code',
+                vender='google', action='res', mode='code',
             ))
         )
         authreq = AuthReq(
@@ -33,10 +37,8 @@ def req_any(request):
             scope="openid profile",
             prompt="admin_consent",
         )
-        authreq['resource'] = "https://graph.windows.net"
 
         signon = SignOn.create(request.user, rp, authreq)
-        authreq['session_state'] = signon.state
         request.session['state'] = signon.state
 
         if conf.authorization_endpoint.find('?') > 0:
@@ -51,7 +53,7 @@ def req_any(request):
 
     return TemplateResponse(
         request,
-        'venders/azure/req_any.html',
+        'venders/google/req_any.html',
         dict(request=request, form=form))
 
 
@@ -76,7 +78,7 @@ def res_code(request):
     uri = signon.party.authority.openid_configuration.token_endpoint
     ruri = request.build_absolute_uri(
         reverse('rp_auth', kwargs=dict(
-            vender='azure', action='res', mode='code',
+            vender='google', action='res', mode='code',
         ))
     )
     data = dict(
@@ -84,7 +86,6 @@ def res_code(request):
         code=request.GET.get('code'),
         client_id=credentials.client_id,
         client_secret=credentials.client_secret,
-        resource="https://graph.windows.net",
         redirect_uri=ruri,
     )
 
@@ -106,4 +107,4 @@ def res_code(request):
 
     ctx = {}    #: TODO:ERROR
     return TemplateResponse(
-        request, 'venders/azure/res_code.html', ctx)
+        request, 'venders/google/res_code.html', ctx)
