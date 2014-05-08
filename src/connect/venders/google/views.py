@@ -4,6 +4,7 @@ Google "OAuth 2.0 for Login(OpenID Connect)"
 https://developers.google.com/accounts/docs/OAuth2Login
 '''
 from django.http import HttpResponse
+from django.template import RequestContext
 from django.template.response import TemplateResponse
 from django.core.urlresolvers import reverse
 
@@ -13,8 +14,13 @@ from connect.rp.models import (
 )
 from connect.rp.views import save_signon, bind
 
-from connect.messages.auth import AuthReq, AuthResCode
+from connect.messages.auth import AuthReq, AuthResCode, AuthRes
 
+from jose.base import JoseException
+import traceback
+
+SCOPES = ["profile", "email", ]
+PROMPT = ["none", "consent", "select_account",]
 
 def req_any(request):
     form = AuthReqForm(
@@ -30,16 +36,21 @@ def req_any(request):
                 vender='google', action='res', mode='code',
             ))
         )
+        # https://developers.google.com/accounts/docs/OAuth2Login#authenticationuriparameters
+
         authreq = AuthReq(
             response_type="code",
             client_id=rp.identifier,
             redirect_uri=ruri,
             scope="openid profile",
-            prompt="admin_consent",
+            prompt=PROMPT[1],
         )
+        authreq['include_granted_scopes'] = 'false'
 
         signon = SignOn.create(request.user, rp, authreq)
         request.session['state'] = signon.state
+        authreq.nonce = None            #: nonce not supported
+
 
         if conf.authorization_endpoint.find('?') > 0:
             sep = "&"
@@ -68,10 +79,16 @@ def res_code(request):
 
     signon = signons[0]     # TODO: check
 
-    signon.authres = AuthResCode.from_url(request.get_full_path())
+    authres = AuthRes.from_url(request.get_full_path())
+    signon.authres = authres
     signon.save()
 
     save_signon(request, signon)
+    if authres.error:
+        return TemplateResponse(
+            request, 'venders/google/res_error.html', 
+            dict(request=request, authres=authres))
+
 
     credentials = signon.party.credentials
 
@@ -95,7 +112,15 @@ def res_code(request):
 
     res = requests.post(uri, data=data, auth=auth)
     signon.tokens = res.content
-    id_token = signon.id_token
+    signon.save()
+
+    try:
+        id_token = signon.id_token
+    except JoseException, ex:
+        print ex.message
+        print ex.jobj.to_json()
+        id_token = None
+
     if id_token:        #: verfied
         signon.subject = id_token.sub
         signon.verified = True
@@ -103,8 +128,11 @@ def res_code(request):
 
         return bind(request, signon)
 
-    signon.save()
-
-    ctx = {}    #: TODO:ERROR
+    ctx = RequestContext(
+        request,dict(
+            request=request,
+            authres=authres,
+            tokenres=signon.token_response,
+    ))
     return TemplateResponse(
-        request, 'venders/google/res_code.html', ctx)
+        request, 'venders/google/res_error.html', ctx)

@@ -50,36 +50,51 @@ _auth_res_code = dict(
     state=None,
 )
 
+_auth_res_implicit = dict(
+    access_token=None,
+    token_type=None,
+    expires_in=None,
+    scope=None,
+    state=None,
+)
+
+_auth_res_hybrid = dict(
+    access_token=None,
+    id_token=None,
+    code=None,
+)
+
+_auth_res_error = dict(
+    error=None,
+    error_description=None,
+    error_uri=None,
+    state=None,
+)
 
 class AuthResCode(BaseObject):
     _fields = _auth_res_code
 
 
 class AuthResImplicit(BaseObject):
-    _fields = dict(
-        access_token=None,
-        token_type=None,
-        expires_in=None,
-        scope=None,
-        state=None,
-    )
+    _fields = _auth_res_implicit
 
 
 class AuthResHybrid(BaseObject):
     _fields = merged([
         AuthResCode._fields,
-        dict(
-            access_token=None,
-            id_token=None,
-            code=None,
-        ),
+        AuthResImplicit._fields,
+        _auth_res_hybrid,
     ])
 
 
 class AuthResError(BaseObject):
-    _fields = dict(
-        error=None,
-        error_description=None,
-        error_uri=None,
-        state=None,
-    )
+    _fields = _auth_res_error
+
+
+class AuthRes(BaseObject):
+    _fields = merged([
+        _auth_res_code,
+        _auth_res_implicit,
+        _auth_res_hybrid,
+        _auth_res_error,
+    ])
