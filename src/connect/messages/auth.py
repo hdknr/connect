@@ -1,4 +1,4 @@
-from jose import BaseObject
+from jose.base import BaseObject
 from jose.utils import merged
 
 # OAuth 2.0 Authentication Reuqest
