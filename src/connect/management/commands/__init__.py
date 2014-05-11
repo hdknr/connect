@@ -37,9 +37,7 @@ class GenericCommand(BaseCommand):
     def handle(self, *args, **options):
         '''  command main '''
 
-        if len(args) < 1:
-            return "a sub command must be specfied"
-        self.command = args[0]
+        self.command = args[0] if len(args) > 0 else "help"
         getattr(self,
                 'command_%s' % self.command,
                 GenericCommand.command_help)(*args[1:], **options)
