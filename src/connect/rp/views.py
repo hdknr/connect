@@ -285,6 +285,10 @@ def userinfo(request, id):
             identity.save()
 
         userinfo = res.content
+    else:   
+        identity.userinfo = id_token.to_json(indent=2)
+        identity.save()
+    
 
     return TemplateResponse(
         request,

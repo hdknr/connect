@@ -7,12 +7,13 @@ from connect.rp.forms import AuthReqForm
 from connect.rp.models import (
     SignOn
 )
-from connect.rp.views import save_signon, bind
+from connect.rp.views import save_signon, bind, request_token
 
-from connect.messages.auth import AuthReq, AuthResCode
+from connect.messages.auth import AuthReq, AuthRes
+import traceback
 
 
-def req_any(request):
+def req_any(request, vender, action, mode, *args, **kwargs):
     form = AuthReqForm(
         vender=__package__,
         data=request.POST or None)
@@ -30,7 +31,7 @@ def req_any(request):
             response_type="code",
             client_id=rp.identifier,
             redirect_uri=ruri,
-            scope="openid profile",
+            scope="openid profile email",
             prompt="admin_consent",
         )
         authreq['resource'] = "https://graph.windows.net"
@@ -55,55 +56,43 @@ def req_any(request):
         dict(request=request, form=form))
 
 
-def res_code(request):
+def res_code(request, vender, action, mode):
     '''
     '''
-    from requests.auth import HTTPBasicAuth
-    import requests
+    authres = AuthRes.from_url(request.get_full_path())
+    valid_state = authres.state == request.session['state']
 
-    signons = SignOn.objects.filter(
-        state=request.session['state'])
-
-    signon = signons[0]     # TODO: check
-
-    signon.authres = AuthResCode.from_url(request.get_full_path())
-    signon.save()
-
-    save_signon(request, signon)
-
-    credentials = signon.party.credentials
-
-    uri = signon.party.authority.openid_configuration.token_endpoint
-    ruri = request.build_absolute_uri(
-        reverse('rp_auth', kwargs=dict(
-            vender='azure', action='res', mode='code',
-        ))
-    )
-    data = dict(
-        grant_type="authorization_code",
-        code=request.GET.get('code'),
-        client_id=credentials.client_id,
-        client_secret=credentials.client_secret,
-        resource="https://graph.windows.net",
-        redirect_uri=ruri,
-    )
-
-    auth = HTTPBasicAuth(
-        credentials.client_id,
-        credentials.client_secret)
-
-    res = requests.post(uri, data=data, auth=auth)
-    signon.tokens = res.content
-    id_token = signon.id_token
-    if id_token:        #: verfied
-        signon.subject = id_token.sub
-        signon.verified = True
+    signon = None
+    errors = None
+    try:
+        signon = SignOn.objects.get(state=authres.state)
+        signon.authres = authres
         signon.save()
 
+        if authres.error:
+            raise Exception("authres error")
+
+        id_token = request_token(
+            request, signon, vender)
+
+        save_signon(request, signon)
         return bind(request, signon)
 
-    signon.save()
+    except Exception, ex:
+        errors = traceback.format_exc()
+        if signon:
+            signon.errors = errors
+            signon.save()
+    
+    
+    ctx = request,dict(
+            request=request,
+            signon=signon,
+            authres=authres,
+            tokenres=signon.token_response,
+            errors=errors,
+    )
 
-    ctx = {}    #: TODO:ERROR
     return TemplateResponse(
-        request, 'venders/azure/res_code.html', ctx)
+        request, 'venders/azure/res_error.html', ctx)
+
