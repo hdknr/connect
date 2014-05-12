@@ -18,6 +18,8 @@ _IDENTIFIER = dict(
     db_index=True,
 )
 
+_RELATION = '%(app_label)s_%(class)s_related'
+
 
 class AbstractKey(models.Model):
     owner = models.CharField(_(u'Owner'), max_length=200)
@@ -69,6 +71,7 @@ class KeyOwner(models.Model):
 
 
 class AbstractAuthority(KeyOwner):
+    short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
     identifier = models.CharField(_(u'Identifier'), **_IDENTIFIER)
     auth_metadata = models.TextField(default='{}')      #: For OpenID Connect
 
@@ -76,7 +79,7 @@ class AbstractAuthority(KeyOwner):
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     def __unicode__(self):
-        return self.identifier
+        return self.short_name
 
     class Meta:
         abstract = True
@@ -109,6 +112,7 @@ class AbstractAuthority(KeyOwner):
 
 
 class AbstractRelyingParty(KeyOwner):
+    short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
     identifier = models.CharField(
         _(u'Identifier'), max_length=250, db_index=True)
 
@@ -117,12 +121,13 @@ class AbstractRelyingParty(KeyOwner):
         related_name='%(app_label)s_%(class)s_related')
     auth_metadata = models.TextField(default='{}')
     reg = models.TextField(_(u'Client Registration'), default='{}')
+    auth_settings = models.TextField(_(u'Authentication Settings'), default='{}')
 
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     def __unicode__(self):
-        return self.authority.identifier + " " + self.identifier
+        return self.authority.__unicode__() + " " + self.short_name
 
     class Meta:
         abstract = True
@@ -142,6 +147,17 @@ class AbstractRelyingParty(KeyOwner):
     @credentials.setter
     def credentials(self, value):
         self.reg = value.to_json()
+
+
+
+class AbstractPreference(models.Model):
+    ''' Authentication Preference managed by per User'''
+    party = models.ForeignKey('RelyingParty', related_name=_RELATION)
+    user = models.ForeignKey(User, related_name=_RELATION)    
+    preferences =  models.TextField(default='')
+
+    class Meta:
+        abstract = True
 
 
 class AbstractIdentity(models.Model):
@@ -234,10 +250,11 @@ class AbstractSignOn(models.Model):
     def id_token(self):
         token_response = self.token_response
         if token_response:
-            return IdToken.parse(
+            id_token = IdToken.parse(
                 token_response.id_token,
                 sender=self.authority,
                 recipient=self.party)
+            return id_token
         return None
 
     @property

@@ -41,15 +41,18 @@ class Command(GenericCommand):
         print rp.authority.identifier
         print rp.authority.openid_configuration.to_json(indent=2)
 
-    def command_update_auhority_keyset(self, id=None, *args, **options):
+    def command_update_authority_keyset(self, id=None, *args, **options):
         try:
             az = Authority.objects.get(id=id)
             az.update_key()
             for key in az.keys.all():
-                print key and key.to_json(indent=2) 
+                print key and key.jwkset.to_json(indent=2) 
 
         except Exception, ex:
             print traceback.format_exc()
+            
+            for authority in Authority.objects.all():
+                print authority.id, authority
 
     def command_list_authorty_keyset(self, id=None, *args, **options):
         for key in Authority.objects.get(id=id).keys.all():
@@ -82,6 +85,7 @@ class Command(GenericCommand):
         try:
             so = SignOn.objects.get(id=id)
             print so.id_token.to_json()
+            print "JWT is  verified:", so.id_token.verified
         except JoseException, ex:
             print ex.message
             print ex.jobj and ex.jobj.to_json()

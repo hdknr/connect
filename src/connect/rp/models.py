@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from jose.utils import nonce, _BE
 import hashlib
 
@@ -10,6 +10,7 @@ from ..models import (
     AbstractKey,
     AbstractAuthority,
     AbstractRelyingParty,
+    AbstractPreference,
     AbstractIdentity,
     AbstractSignOn,
     AbstractScope,
@@ -47,6 +48,13 @@ class RelyingParty(AbstractRelyingParty):
 
     class Meta:
         unique_together = (('identifier', 'authority'), )
+
+
+class Preference(AbstractPreference):
+
+    class Meta:
+        verbose_name = _(u'Relying Paryt Preference')
+        verbose_name_plural = _(u'Relying Paryt Preferences')
 
 
 class SignOn(AbstractSignOn):

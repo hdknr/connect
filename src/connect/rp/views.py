@@ -6,7 +6,8 @@ from django.utils.importlib import import_module
 from django.contrib.auth.decorators import login_required
 
 from forms import AuthReqForm, SignUpForm, SelectForm
-from connect.rp.models import SignOn, Identity
+from connect.rp.models import SignOn, Identity, Authority
+from connect.messages.id_token import IdToken
 
 
 def save_signon(request, signon):
@@ -128,19 +129,68 @@ def signup(request):
 
 
 @login_required
-def id_list(request):
+def conf_default(request):
+    return TemplateResponse(
+        request,
+        'rp/conf_default.html',
+        dict(request=request))
+
+
+@login_required
+def identity_list(request):
     identity_list = Identity.objects.filter(user=request.user)
     return TemplateResponse(
         request,
-        'rp/id_list.html',
+        'rp/identity_list.html',
         dict(request=request, identity_list=identity_list))
 
 
 @login_required
-def id_detail(request, id):
+def identity_detail(request, id):
     identity = Identity.objects.get(id=id)
+    signon_list = SignOn.objects.filter(
+        party=identity.party,
+        subject=identity.subject
+    )
 
     return TemplateResponse(
         request,
-        'rp/id_detail.html',
-        dict(request=request, identity=identity))
+        'rp/identity_detail.html',
+        dict(request=request, 
+             identity=identity,
+             signon_list=signon_list,
+            )   
+    )
+
+
+@login_required
+def signon_detail(request, id):
+    signon = SignOn.objects.get(id=id)
+    if signon.subject:
+        identity = Identity.objects.get(user=request.user, subject=signon.subject)
+    else:
+        return Http404
+    id_token = signon.id_token
+
+    return TemplateResponse(
+        request,
+        'rp/signon_detail.html',
+        dict(request=request, 
+             identity=identity,
+             signon=signon,
+             id_token=id_token,
+            ))
+
+
+@login_required
+def authority_detail(request, id):
+    authority = Authority.objects.get(id=id)
+
+    return TemplateResponse(
+        request,
+        'rp/authority_detail.html',
+        dict(request=request, 
+             identity=identity,
+             signon=signon,
+             id_token=id_token,
+            ))

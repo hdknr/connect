@@ -121,12 +121,15 @@ def res_code(request):
         print ex.jobj.to_json()
         id_token = None
 
-    if id_token:        #: verfied
+    if id_token:        
         signon.subject = id_token.sub
-        signon.verified = True
-        signon.save()
+        if id_token.verified:
+            signon.verified = True
+            signon.save()
 
-        return bind(request, signon)
+            return bind(request, signon)
+
+    signon.save()
 
     ctx = RequestContext(
         request,dict(
@@ -136,3 +139,5 @@ def res_code(request):
     ))
     return TemplateResponse(
         request, 'venders/google/res_error.html', ctx)
+
+

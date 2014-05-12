@@ -1,0 +1,19 @@
+<ul>
+ <li>{{ signon.id }}          </li>
+ <li>{{ signon.request }}</li>
+ <li>{{ signon.response }}</li>
+ <li>{{ signon.tokens }}</li>
+ <li>{{ signon.access_token }}</li>
+ <li>{{ signon.created_at }}</li>
+ <li>{{ signon.updated_at }}</li>
+</ul>
+
+<h2>ID Token</h2>
+<ul> 
+ <li>{{ id_token.iss }}          </li>
+ <li>{{ id_token.sub}}          </li>
+ <li>{{ id_token.verified }}    </li>
+</ul>
+
+
+<a href="{% url "rp_identity_detail" id=identity.id %}">{{identity}}</a>

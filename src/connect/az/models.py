@@ -5,6 +5,7 @@ from connect.models import (
     AbstractKey,
     AbstractAuthority,
     AbstractRelyingParty,
+    AbstractPreference,
     AbstractIdentity,
     AbstractSignOn,
     AbstractScope,
@@ -36,6 +37,13 @@ class Authority(AbstractAuthority):
 
 class RelyingParty(AbstractRelyingParty):
     pass
+
+
+class Preference(AbstractPreference):
+
+    class Meta:
+        verbose_name = _(u'Relying Paryt Preference')
+        verbose_name_plural = _(u'Relying Paryt Preferences')
 
 
 class Identity(AbstractIdentity):

@@ -1,24 +1,19 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls import patterns, url
-from views import (
-    default,
-    auth,
-    bind,
-    signup,
-    select,
-    id_list,
-    id_detail,
-)
+import views
 
 _AUTH = r"(?:(?P<vender>.*)/)?auth/(?P<action>.+)/(?P<mode>.*)$"
 
 urlpatterns = patterns(
     '',
-    url("id/(?P<id>\d+)", id_detail, name='rp_id_detail'),
-    url("id", id_list, name='rp_id_lis'),
-    url("bind", bind, name='rp_bind'),
-    url("select", select, name='rp_select'),
-    url("signup", signup, name='rp_signup'),
-    url(_AUTH, auth, name='rp_auth'),
-    url(r'$', default, name='rp_default'),
+    url("conf/signon/(?P<id>\d+)", views.signon_detail, name='rp_signon_detail'),
+    url("conf/az/(?P<id>\d+)", views.authority_detail, name='rp_authority_detail'),
+    url("conf/id/(?P<id>\d+)", views.identity_detail, name='rp_identity_detail'),
+    url("conf/id", views.identity_list, name='rp_identity_list'),
+    url("conf/", views.conf_default, name='rp_conf_default'),
+    url("bind", views.bind, name='rp_bind'),
+    url("select", views.select, name='rp_select'),
+    url("signup", views.signup, name='rp_signup'),
+    url(_AUTH, views.auth, name='rp_auth'),
+    url(r'$', views.default, name='rp_default'),
 )
