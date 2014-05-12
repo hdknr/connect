@@ -59,9 +59,6 @@ class AbstractKey(models.Model):
 
 
 class KeyOwner(models.Model):
-#    keys = models.ManyToManyField(
-#        'Key', null=True, default=None, blank=True,
-#        related_name='%(app_label)s_%(class)s_related')
 
     def save_object(self, obj, uri, *args, **kwargs):
         for jwk in obj.keys:
@@ -87,6 +84,10 @@ class KeyOwner(models.Model):
 
 
 class AbstractAuthority(KeyOwner):
+    tenant = models.CharField(
+        _(u'Tenant'), default=None,
+       max_length=50, blank=True, null=True, db_index=True,)
+
     short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
     identifier = models.CharField(_(u'Identifier'), **_IDENTIFIER)
     auth_metadata = models.TextField(default='{}')      #: For OpenID Connect

@@ -14,9 +14,6 @@ from connect.models import (
 
 
 class Authority(AbstractAuthority):
-    tenant = models.CharField(
-        _(u'Tenant'), default=None,
-        max_length=50, blank=True, null=True, db_index=True,)
 
     class Meta:
         unique_together = (('identifier', 'tenant'), )

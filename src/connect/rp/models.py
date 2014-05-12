@@ -22,7 +22,9 @@ from connect.messages.reg import ClientMeta
 
 class Authority(AbstractAuthority):
     vender = models.CharField(_(u'Vender'), max_length=50)
-    pass
+
+    class Meta:
+        unique_together = (('identifier', 'tenant'), )
 
 
 class AuthorityKey(AbstractKey):

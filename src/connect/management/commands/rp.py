@@ -26,6 +26,11 @@ class Command(GenericCommand):
                      dest='nonce',
                      default='utf-8',
                      help=u'nonce'),
+         make_option('--tenant', '-t',
+                     action='store',
+                     dest='tenant',
+                     default='utf-8',
+                     help=u'Authority Tenant Name'),
     )
 
     def command_party_list(self, *args, **option):
@@ -94,9 +99,9 @@ class Command(GenericCommand):
             print ex.args
 
         
-    def command_create_authority(self, vender, *args, **options):
+    def command_create_authority(self, vender, tenant, *args, **options):
         print vender
         mod = import_module(vender + ".settings")
         func = "create_authority"
-        return getattr(mod, func)()
+        return getattr(mod, func)(tenant, *args, **options)
         

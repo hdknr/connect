@@ -34,6 +34,15 @@ class RelyingPartyForm(BaseRelyingPartyForm):
     client_id = forms.CharField(required=True) 
     client_secret = forms.CharField(required=True) 
 
+    def __init__(self, data=None, instance=None, *args, **kwargs):
+        if instance and not data:
+            credentials = instance.credentials
+            self.base_fields['client_id'].initial = credentials.client_id
+            self.base_fields['client_secret'].initial = credentials.client_secret
+        
+        super(RelyingPartyForm, self).__init__(
+            data=data, instance=instance, *args, **kwargs)
+
     class Meta:
         model = RelyingParty
         exclude = ['authority', 'reg', 'auth_metadata', 'auth_settings',]
@@ -68,7 +77,7 @@ def items(request, vender, id, command):
     if parties.count() < 1: 
         if not Authority.objects.filter(vender=vender_name).exists():
             #: TODO: Crete Vender
-            authority = create_authority()
+            raise Exception('Authority MUST be createed first with Azure Tenant Name')
         
         kwargs = dict(vender=vender, command="edit",)
         return HttpResponseRedirect(
@@ -129,15 +138,21 @@ def edit(request, vender, id, command):
         request, 'venders/google/settings_edit.html', ctx)
 
 
-def create_authority():
-    conf_uri = 'https://login.windows.net/8dbbbd22-310e-4645-b80a-80a8b958eaa8/.well-known/openid-configuration'
+def create_authority(tenant, *args, **kwargs):
+    if not tenant:
+        raise Exception("Tenant name is required for Azure Authroity")
+
+    conf_uri = 'https://login.windows.net/%s/.well-known/openid-configuration' % tenant
     res = requests.get(conf_uri, headers={'content-type': 'application/json'}) 
+
     if res.status_code != 200:
         raise Exception("Failed to get OpenID Configuration")
+
     meta = ProviderMeta.from_json(res.content)
     authority, created = Authority.objects.get_or_create(
         identifier=meta.issuer,
         vender=__package__,
+        tenant=tenant,
     )
     if created:
         authority.short_name = "Azure"

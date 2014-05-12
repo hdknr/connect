@@ -117,12 +117,15 @@ def edit(request, vender, id, command):
         request, 'venders/google/settings_edit.html', ctx)
 
 
-def create_authority():
+def create_authority(tenant=None, *args, **kwargs):
     conf_uri = 'https://accounts.google.com/.well-known/openid-configuration'
     authority, created = Authority.objects.get_or_create(
         identifier='accounts.google.com', 
         vender=__package__,
     )
+    if tenant:
+        authority.tenant = tenant
+
     if created:
         authority.short_name = "Google"
         authority.save()
