@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from django.utils.importlib import import_module
+
 from . import GenericCommand
-from connect.rp.models import SignOn, Key, RelyingParty, Authority
+from connect.rp.models import SignOn, RelyingParty, Authority
 from connect.messages.token import TokenRes
 from connect.messages.id_token import IdToken
 from jose.base import JoseException
@@ -92,4 +94,9 @@ class Command(GenericCommand):
             print ex.args
 
         
+    def command_create_authority(self, vender, *args, **options):
+        print vender
+        mod = import_module(vender + ".settings")
+        func = "create_authority"
+        return getattr(mod, func)()
         

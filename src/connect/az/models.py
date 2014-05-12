@@ -13,11 +13,6 @@ from connect.models import (
 )
 
 
-class Key(AbstractKey):
-    class Meta:
-        unique_together = (('owner', 'uri'), )
-
-
 class Authority(AbstractAuthority):
     tenant = models.CharField(
         _(u'Tenant'), default=None,
@@ -35,8 +30,21 @@ class Authority(AbstractAuthority):
         return meta
 
 
+class AuthorityKey(AbstractKey):
+    owner = models.ForeignKey(Authority, related_name="keys")
+
+    class Meta:
+        unique_together = (('jku', 'kid', 'x5t'), )
+
+
 class RelyingParty(AbstractRelyingParty):
     pass
+
+
+class RelyingPartyKey(AbstractKey):
+    owner = models.ForeignKey(RelyingParty, related_name="keys")
+    class Meta:
+        unique_together = (('jku', 'kid', 'x5t'), )
 
 
 class Preference(AbstractPreference):

@@ -149,6 +149,7 @@ class SignInForm(forms.Form):
 
 
 class RelyingPartyForm(forms.ModelForm):
+
     class Meta:
         model = RelyingParty
         exclude = ['keys', 'authority', ]

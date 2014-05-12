@@ -8,8 +8,9 @@ from connect.messages.reg import ClientMeta, ClientReg
 from connect.messages.auth import AuthReq, AuthRes
 from connect.messages.token import TokenResCode
 from connect.messages.id_token import IdToken
-from jose.jwk import JwkSet
+from jose.jwk import JwkSet, Jwk
 import requests
+import traceback
 
 
 _IDENTIFIER = dict(
@@ -22,11 +23,17 @@ _RELATION = '%(app_label)s_%(class)s_related'
 
 
 class AbstractKey(models.Model):
-    owner = models.CharField(_(u'Owner'), max_length=200)
-    uri = models.CharField(
-        _(u'Uri'), max_length=200,
+    jku = models.CharField(
+        _(u'Jku'), max_length=200,
         null=True, blank=True, default=None)
-    keyset = models.TextField(default='{}')
+    kid = models.CharField(
+        _(u'Key ID'), max_length=100, 
+        null=True, blank=True, default=None)
+    x5t = models.CharField(
+        _(u'X.509 Thumprint'), max_length=100, 
+        null=True, blank=True, default=None)
+
+    key = models.TextField(default='{}')
 
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
@@ -35,35 +42,44 @@ class AbstractKey(models.Model):
         abstract = True
 
     @property
-    def jwkset(self):
-        return JwkSet.from_json(self.keyset)
+    def jwk(self):
+        return Jwk.from_json(self.key)
+
+    @jwk.setter
+    def jwk(self, value):
+        self.key = value.to_json(indent=2)
 
     def __unicode__(self):
-        return self.owner + " " + self.uri or ''
+        return "%s %s %s %s" % (
+            self.owner.__unicode__(),
+            self.jku or '',
+            self.kid or '',
+            self.x5t or '')  
+
 
 
 class KeyOwner(models.Model):
-    keys = models.ManyToManyField(
-        'Key', null=True, default=None, blank=True,
-        related_name='%(app_label)s_%(class)s_related')
+#    keys = models.ManyToManyField(
+#        'Key', null=True, default=None, blank=True,
+#        related_name='%(app_label)s_%(class)s_related')
 
     def save_object(self, obj, uri, *args, **kwargs):
-        key, created = self.keys.get_or_create(
-            owner=self.__unicode__(),
-            uri=uri)
-        key.keyset = obj.to_json()
-        key.save()
+        for jwk in obj.keys:
+            key, created = self.keys.get_or_create(
+                owner=self,
+                jku=uri,
+                kid=jwk.kid,
+                x5t=jwk.x5t)
+            key.key = jwk.to_json(indent=2)
+            key.save()
 
-    def load_object(self, obj_class, uri, *args, **kwargs):
+    def load_object(self, obj_class, uri, kid=None, x5t=None, *args, **kwargs):
         try:
-            q = dict(owner=self.__unicode__())
-            if uri:
-                q['uri'] = uri
-            keys = self.keys.filter(**q)
-            key = keys.count() > 0 and keys[0] or None
-            return key and key.jwkset
-        except Exception, ex:
-            print ex
+            q = dict([(k, v) for k, v in dict(uri=uri, kid=kid, x5t=x5t).items() if v ])
+            keys = [k.jwk for k in self.keys.filter(**q)]
+            ret = JwkSet(keys=keys)
+            return ret
+        except:
             return None
 
     class Meta:
@@ -96,7 +112,7 @@ class AbstractAuthority(KeyOwner):
 
     @openid_configuration.setter
     def openid_configuration(self, value):
-        self.auth_metadata = value.to_json()
+        self.auth_metadata = value.to_json(indent=2)
 
     def update_key(self):
         # TODO: SSL ann verify certificate.
@@ -106,9 +122,9 @@ class AbstractAuthority(KeyOwner):
             jwkset = JwkSet.from_json(res.content)
             self.save_object(jwkset, jku)
 
-    def jwkset(self, jku=None):
-        jku = jku or self.openid_configuration.jwks_uri
-        return self.load_object(JwkSet, jku).jwkset
+#;    def jwkset(self, jku=None):
+#;        jku = jku or self.openid_configuration.jwks_uri
+#;        return self.load_object(JwkSet, jku).jwkset
 
 
 class AbstractRelyingParty(KeyOwner):

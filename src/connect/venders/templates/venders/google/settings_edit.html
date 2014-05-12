@@ -1,7 +1,8 @@
 <h1>Google+ Relying Party </h1>
 <ul>
  <li>Look At Google Authentication at 
-    <a target="_outside" href="https://developers.google.com/accounts/docs/OAuth2Login">Using OAuth 2.0 for Login (OpenID Connect)</a>
+    <a target="_outside" 
+    href="https://developers.google.com/accounts/docs/OAuth2Login">Using OAuth 2.0 for Login (OpenID Connect)</a>
  </li>
 
  <li>
@@ -18,7 +19,8 @@
  </li>
 </ul>
 
-<form method="post" > {% csrf_token %}
+<form method="post" action={{ action_url }} > {% csrf_token %}
+  Idenfider = {{ form.instance.credentials.client_id }} 
   {{ form.as_p }}
   <button type="submit" name="save" value="save">Save</button>
   <a href="{% url 'rp_settings' vender=vender id=form.instance.id %}">Cancel</a> 

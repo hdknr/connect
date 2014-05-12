@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from forms import AuthReqForm, SignUpForm, SelectForm
 from connect.rp.models import SignOn, Identity, Authority
 from connect.messages.id_token import IdToken
+from jose.base import JoseException
 
 import requests
 

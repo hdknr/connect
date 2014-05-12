@@ -20,14 +20,16 @@ from ..models import (
 from connect.messages.reg import ClientMeta
 
 
-class Key(AbstractKey):
-    class Meta:
-        unique_together = (('owner', 'uri'), )
-
-
 class Authority(AbstractAuthority):
     vender = models.CharField(_(u'Vender'), max_length=50)
     pass
+
+
+class AuthorityKey(AbstractKey):
+    owner = models.ForeignKey(Authority, related_name="keys") 
+    class Meta:
+        unique_together = (('jku', 'kid', 'x5t'), )
+
 
 
 class RelyingParty(AbstractRelyingParty):
@@ -48,6 +50,12 @@ class RelyingParty(AbstractRelyingParty):
 
     class Meta:
         unique_together = (('identifier', 'authority'), )
+
+
+class RelyingPartyKey(AbstractKey):
+    owner = models.ForeignKey(RelyingParty, related_name="keys") 
+    class Meta:
+        unique_together = (('jku', 'kid', 'x5t'), )
 
 
 class Preference(AbstractPreference):

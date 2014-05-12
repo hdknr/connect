@@ -21,10 +21,12 @@ from connect.rp.views import save_signon, bind
 from connect.rp.forms import RelyingPartyForm as BaseRelyingPartyForm
 
 from connect.messages.auth import AuthReq, AuthResCode, AuthRes
+from connect.messages.discovery import ProviderMeta
 
 from jose.base import JoseException
 import traceback
 
+import requests
 
 
 class RelyingPartyForm(BaseRelyingPartyForm):
@@ -59,7 +61,11 @@ def items(request, vender, id, command):
     if parties.count() < 1: 
         if not Authority.objects.filter(vender=vender_name).exists():
             #: TODO: Crete Vender
-            pass
+            authority = create_authority()
+        
+        kwargs = dict(vender=vender, command="edit",)
+        return HttpResponseRedirect(
+            reverse('rp_settings', kwargs=kwargs))
 
     ctx = dict(
         request=request,
@@ -73,18 +79,25 @@ def items(request, vender, id, command):
 @staff_member_required
 def edit(request, vender, id, command):
     
-    instance=RelyingParty.objects.get(id=id)
-    if request.method == "post": 
+    vender_name  = "connect.venders.%s" % vender
+    instance= id and RelyingParty.objects.get(id=id)
+    if request.method == "POST": 
         form = RelyingPartyForm(
             data=request.POST, instance=instance)
-        if form.is_valid:
+        if form.is_valid():
+            form.instance.authority = Authority.objects.filter(vender=vender_name)[0]
             form.save() 
             return HttpResponseRedirect( 
-                revers('rp_settings', 
+                reverse('rp_settings', 
                        kwargs=dict(
                         vender=vernder, id=id 
                        ))
             )
+        try:
+            reg = form.instance.credentials
+        except Exception, ex:
+            print ex
+            pass
     else:
         form = RelyingPartyForm(instance=instance)
 
@@ -102,3 +115,24 @@ def edit(request, vender, id, command):
     )
     return TemplateResponse(
         request, 'venders/google/settings_edit.html', ctx)
+
+
+def create_authority():
+    conf_uri = 'https://accounts.google.com/.well-known/openid-configuration'
+    authority, created = Authority.objects.get_or_create(
+        identifier='accounts.google.com', 
+        vender=__package__,
+    )
+    if created:
+        authority.short_name = "Google"
+        authority.save()
+    
+    res = requests.get(conf_uri, headers={'content-type': 'application/json'}) 
+    if res.status_code != 200:
+        raise Exception("Failed to get OpenID Configuration")
+
+    authority.openid_configuration = ProviderMeta.from_json(res.content)
+    authority.save()
+
+    authority.update_key()
+    return authority
