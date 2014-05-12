@@ -175,6 +175,8 @@ class AbstractIdentity(models.Model):
         User,
         related_name='%(app_label)s_%(class)s_related')
 
+    userinfo = models.TextField(default='{}')
+
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 

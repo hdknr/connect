@@ -10,6 +10,7 @@ from forms import AuthReqForm, SignUpForm, SelectForm
 from connect.rp.models import SignOn, Identity, Authority
 from connect.messages.id_token import IdToken
 
+import requests
 
 def save_signon(request, signon):
     request.session['rp_signon'] = signon.id
@@ -39,8 +40,6 @@ def auth_login(request, user):
 def request_token(request, signon, vender):
     '''
     '''
-    from requests.auth import HTTPBasicAuth
-    import requests
 
     credentials = signon.party.credentials
 
@@ -58,7 +57,7 @@ def request_token(request, signon, vender):
         redirect_uri=ruri,
     )
 
-    auth = HTTPBasicAuth(
+    auth = requests.auth.HTTPBasicAuth(
         credentials.client_id,
         credentials.client_secret)
 
@@ -260,3 +259,39 @@ def authority_detail(request, id):
              signon=signon,
              id_token=id_token,
             ))
+
+
+@login_required
+def userinfo(request, id):
+    signon = SignOn.objects.get(id=id)
+    if signon.subject:
+        identity = Identity.objects.get(user=request.user, subject=signon.subject)
+    else:
+        identity = None
+    
+    id_token = signon.id_token
+    conf = signon.party.authority.openid_configuration
+    access_token = signon.access_token 
+    userinfo = None
+    if conf and conf.userinfo_endpoint and access_token:
+        headers = {
+            "Authorization": "Bearer %s" % access_token, 
+            "content-type": "application/json",
+        }
+        res = requests.get(conf.userinfo_endpoint, headers=headers)
+        if res.status_code == 200:
+            identity.userinfo = res.content    
+            identity.save()
+
+        userinfo = res.content
+
+    return TemplateResponse(
+        request,
+        'rp/signon_detail.html',
+        dict(request=request, 
+             identity=identity,
+             signon=signon,
+             id_token=id_token,
+             userinfo=userinfo,
+            ))
+

@@ -1,4 +1,5 @@
 <h2>Sing On Information</h2>
+
 <ul>
  <li>{{ signon.id }}          </li>
  <li>{{ signon.access_token }}</li>
@@ -24,6 +25,13 @@
  <li>{{ id_token.sub}}          </li>
  <li>{{ id_token.verified }}    </li>
 </ul>
+{{ id_token.to_json }}
+
+{% if userinfo %}
+<h2>User Info</h2>
+{{ userinfo }}
+{% endif %}
 
 
-<a href="{% url "rp_identity_detail" id=identity.id %}">{{identity}}</a>
+<br/><a href="{% url "rp_identity_detail" id=identity.id %}">{{identity}}</a>
+<br/><a href="{% url "rp_userinfo" id=signon.id %}">Update UserInfo</a>

@@ -45,7 +45,7 @@ def req_any(request, vender, action, mode):
             response_type="code",
             client_id=rp.identifier,
             redirect_uri=ruri,
-            scope="openid profile",
+            scope="openid profile email",
             prompt=PROMPT[1],
         )
         authreq['include_granted_scopes'] = 'false'
@@ -78,9 +78,6 @@ def req_any(request, vender, action, mode):
 def res_code(request, vender, action, mode):
     '''
     '''
-    from requests.auth import HTTPBasicAuth
-    import requests
-
     authres = AuthRes.from_url(request.get_full_path())
     valid_state = authres.state == request.session['state']
 

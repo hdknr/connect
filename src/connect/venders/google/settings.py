@@ -15,6 +15,7 @@ from connect.rp.forms import AuthReqForm
 from connect.rp.models import (
     SignOn,
     RelyingParty,
+    Authority,
 )
 from connect.rp.views import save_signon, bind
 from connect.rp.forms import RelyingPartyForm as BaseRelyingPartyForm
@@ -51,10 +52,14 @@ def items(request, vender, id, command):
     '''
     #:TODO: if no RelyingParty, create default and edit it.
 
+    vender_name  = "connect.venders.%s" % vender
     parties = RelyingParty.objects.filter(
-        authority__vender="connect.venders.%s" % vender,
+        authority__vender=vender_name
     )
-    print parties
+    if parties.count() < 1: 
+        if not Authority.objects.filter(vender=vender_name).exists():
+            #: TODO: Crete Vender
+            pass
 
     ctx = dict(
         request=request,
