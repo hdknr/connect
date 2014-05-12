@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from connect.messages.discovery import ProviderMeta
 from connect.messages.reg import ClientMeta, ClientReg
-from connect.messages.auth import AuthReq, AuthResCode
+from connect.messages.auth import AuthReq, AuthRes
 from connect.messages.token import TokenResCode
 from connect.messages.id_token import IdToken
 from jose.jwk import JwkSet
@@ -216,6 +216,7 @@ class AbstractSignOn(models.Model):
     request = models.TextField(default='{}')
     response = models.TextField(default='{}')
     tokens = models.TextField(default='{}')
+    errors = models.TextField(default='{}')
 
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
@@ -226,16 +227,15 @@ class AbstractSignOn(models.Model):
 
     @authreq.setter
     def authreq(self, value):
-        self.request = value.to_json()
+        self.request = value.to_json(indent=2)
 
     @property
     def authres(self):
-        # TODO : AuthResCode is vague
-        return AuthResCode.from_json(self.request)
+        return AuthRes.from_json(self.request)
 
     @authres.setter
     def authres(self, value):
-        self.response = value.to_json()
+        self.response = value.to_json(indent=2)
 
     @property
     def identities(self):

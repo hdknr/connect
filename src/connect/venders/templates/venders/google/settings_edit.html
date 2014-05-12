@@ -1,0 +1,25 @@
+<h1>Google+ Relying Party </h1>
+<ul>
+ <li>Look At Google Authentication at 
+    <a target="_outside" href="https://developers.google.com/accounts/docs/OAuth2Login">Using OAuth 2.0 for Login (OpenID Connect)</a>
+ </li>
+
+ <li>
+   Go to <a target="_outside2" href="https://console.developers.google.com/project">Developer Console</a>
+ </li>
+ <li>
+   Select "PROJECT NAME", or "CREATE PROJECT".
+ </li>
+ <li>
+   Go to "APIs & auth > Credentials"
+ </li>
+ <li>
+   "CREATE NEW CLIENT ID" and use "{{ redirect_uri }}" as Redirect Uris" for "web" application.
+ </li>
+</ul>
+
+<form method="post" > {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" name="save" value="save">Save</button>
+  <a href="{% url 'rp_settings' vender=vender id=form.instance.id %}">Cancel</a> 
+</form>

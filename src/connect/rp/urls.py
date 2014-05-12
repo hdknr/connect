@@ -3,6 +3,8 @@ from django.conf.urls import patterns, url
 import views
 
 _AUTH = r"(?:(?P<vender>.*)/)?auth/(?P<action>.+)/(?P<mode>.*)$"
+_SETTINGS = r"(?:(?P<vender>.*)/)?settings(?:/(?P<id>\d+))?(?:/(?P<command>[^/]*))?"
+_PREFERENCE = r"(?:(?P<vender>.*)/)?preference(?:/(?P<id>\d+))?(?:/(?P<command>[^/]*))?"
 
 urlpatterns = patterns(
     '',
@@ -15,5 +17,7 @@ urlpatterns = patterns(
     url("select", views.select, name='rp_select'),
     url("signup", views.signup, name='rp_signup'),
     url(_AUTH, views.auth, name='rp_auth'),
+    url(_SETTINGS, views.settings, name='rp_settings'),
+    url(_PREFERENCE, views.preference, name='rp_preference'),
     url(r'$', views.default, name='rp_default'),
 )

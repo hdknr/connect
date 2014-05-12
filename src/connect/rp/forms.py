@@ -8,6 +8,8 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
 
+from models import RelyingParty
+
 
 class AuthReqForm(forms.Form):
     identifier = forms.CharField(required=False)
@@ -144,3 +146,9 @@ class SignInForm(forms.Form):
 
     def get_user(self):
         return self.user_cache
+
+
+class RelyingPartyForm(forms.ModelForm):
+    class Meta:
+        model = RelyingParty
+        exclude = ['keys', 'authority', ]

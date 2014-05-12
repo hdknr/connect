@@ -7,12 +7,15 @@ from django.http import HttpResponse
 from django.template import RequestContext
 from django.template.response import TemplateResponse
 from django.core.urlresolvers import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
+
 
 from connect.rp.forms import AuthReqForm
 from connect.rp.models import (
     SignOn
 )
-from connect.rp.views import save_signon, bind
+from connect.rp.views import save_signon, bind, request_token
 
 from connect.messages.auth import AuthReq, AuthResCode, AuthRes
 
@@ -22,7 +25,7 @@ import traceback
 SCOPES = ["profile", "email", ]
 PROMPT = ["none", "consent", "select_account",]
 
-def req_any(request):
+def req_any(request, vender, action, mode):
     form = AuthReqForm(
         vender=__package__,
         data=request.POST or None)
@@ -62,82 +65,57 @@ def req_any(request):
         res['Location'] = location
         return res
 
+    ctx = dict(
+        request=request, 
+        vender=vender,
+        form=form)
+
     return TemplateResponse(
         request,
-        'venders/google/req_any.html',
-        dict(request=request, form=form))
+        'venders/google/req_any.html', ctx)
 
 
-def res_code(request):
+def res_code(request, vender, action, mode):
     '''
     '''
     from requests.auth import HTTPBasicAuth
     import requests
 
-    signons = SignOn.objects.filter(
-        state=request.session['state'])
-
-    signon = signons[0]     # TODO: check
-
     authres = AuthRes.from_url(request.get_full_path())
-    signon.authres = authres
-    signon.save()
+    valid_state = authres.state == request.session['state']
 
-    save_signon(request, signon)
-    if authres.error:
-        return TemplateResponse(
-            request, 'venders/google/res_error.html', 
-            dict(request=request, authres=authres))
-
-
-    credentials = signon.party.credentials
-
-    uri = signon.party.authority.openid_configuration.token_endpoint
-    ruri = request.build_absolute_uri(
-        reverse('rp_auth', kwargs=dict(
-            vender='google', action='res', mode='code',
-        ))
-    )
-    data = dict(
-        grant_type="authorization_code",
-        code=request.GET.get('code'),
-        client_id=credentials.client_id,
-        client_secret=credentials.client_secret,
-        redirect_uri=ruri,
-    )
-
-    auth = HTTPBasicAuth(
-        credentials.client_id,
-        credentials.client_secret)
-
-    res = requests.post(uri, data=data, auth=auth)
-    signon.tokens = res.content
-    signon.save()
-
+    signon = None
+    errors = None
     try:
-        id_token = signon.id_token
-    except JoseException, ex:
-        print ex.message
-        print ex.jobj.to_json()
-        id_token = None
+        signon = SignOn.objects.get(state=authres.state)
+        signon.authres = authres
+        signon.save()
 
-    if id_token:        
-        signon.subject = id_token.sub
-        if id_token.verified:
-            signon.verified = True
+        if authres.error:
+            raise Exception("authres error")
+
+        id_token = request_token(
+            request, signon, vender)
+
+        save_signon(request, signon)
+        return bind(request, signon)
+
+    except Exception, ex:
+        errors = traceback.format_exc()
+        if signon:
+            signon.errors = errors
             signon.save()
-
-            return bind(request, signon)
-
-    signon.save()
-
+    
+    
     ctx = RequestContext(
         request,dict(
             request=request,
+            signon=signon,
             authres=authres,
             tokenres=signon.token_response,
+            errors=errors,
     ))
+
     return TemplateResponse(
         request, 'venders/google/res_error.html', ctx)
-
 

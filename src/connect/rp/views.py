@@ -4,6 +4,7 @@ from django.http.response import HttpResponseRedirect, Http404
 from django.contrib.auth import login
 from django.utils.importlib import import_module
 from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse
 
 from forms import AuthReqForm, SignUpForm, SelectForm
 from connect.rp.models import SignOn, Identity, Authority
@@ -35,6 +36,53 @@ def auth_login(request, user):
 #    return HttpResponseRedirect(redir)
 
 
+def request_token(request, signon, vender):
+    '''
+    '''
+    from requests.auth import HTTPBasicAuth
+    import requests
+
+    credentials = signon.party.credentials
+
+    uri = signon.party.authority.openid_configuration.token_endpoint
+    ruri = request.build_absolute_uri(
+        reverse('rp_auth', kwargs=dict(
+            vender=vender, action='res', mode='code',
+        ))
+    )
+    data = dict(
+        grant_type="authorization_code",
+        code=request.GET.get('code'),
+        client_id=credentials.client_id,
+        client_secret=credentials.client_secret,
+        redirect_uri=ruri,
+    )
+
+    auth = HTTPBasicAuth(
+        credentials.client_id,
+        credentials.client_secret)
+
+    res = requests.post(uri, data=data, auth=auth)
+    signon.tokens = res.content
+    signon.save()
+
+    try:
+        id_token = signon.id_token
+    except JoseException, ex:
+        id_token = None
+
+    if id_token is None  or not id_token.verified:
+        signon.subject = id_token and id_token.sub or None
+        signon.save()
+        raise Exception("invalid id_token")
+
+    #: TODO other id token values
+    signon.subject = id_token.sub 
+    signon.verified = True
+    signon.save()
+    return id_token
+
+
 def default(request):
     return TemplateResponse(
         request,
@@ -45,9 +93,27 @@ def default(request):
 
 def auth(request, vender, action, mode, *args, **kwargs):
     mod = import_module(
-        "connect.venders.%s.views" % (vender or "core"))
+        "connect.venders.%s.auth" % (vender or "core"))
     func = "%s_%s" % (action, mode or "any")
-    return getattr(mod, func)(request, *args, **kwargs)
+    return getattr(mod, func)(request, vender, action, mode, *args, **kwargs)
+
+
+def settings(request, 
+             vender, id, command,  
+             *args, **kwargs):
+    mod = import_module(
+        "connect.venders.%s.settings" % (vender or "core"))
+    func = "%s" % ( command or "default")
+    return getattr(mod, func)(request, vender, id, command, *args, **kwargs)
+
+
+def preference(request, 
+             vender, id, command,  
+             *args, **kwargs):
+    mod = import_module(
+        "connect.venders.%s.preference" % (vender or "core"))
+    func = "%s" % ( command or "default")
+    return getattr(mod, func)(request, vender, id, command, *args, **kwargs)
 
 
 def bind(request, signon=None):
