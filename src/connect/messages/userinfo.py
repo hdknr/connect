@@ -42,6 +42,11 @@ _address_fields = dict(
 class UserInfo(BaseObject):
     _fields = _userinfo_fields
 
+    def __init__(self, *args, **kwargs):
+        suepr(UserInfo, self).__init__(*args, **kwargs) 
+        if isinstance(self.address, dict):
+            self.address = Address(**self.address)
+
 
 class Address(BaseObject):
     _fields = _address_fields
