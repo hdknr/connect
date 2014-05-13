@@ -17,6 +17,7 @@ urlpatterns = patterns(
     url("bind", views.bind, name='rp_bind'),
     url("select", views.select, name='rp_select'),
     url("signup", views.signup, name='rp_signup'),
+    url("connect", views.connect, name="rp_connect"),
     url(_AUTH, views.auth, name='rp_auth'),
     url(_SETTINGS, views.settings, name='rp_settings'),
     url(_PREFERENCE, views.preference, name='rp_preference'),

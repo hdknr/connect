@@ -12,11 +12,17 @@ from models import RelyingParty
 
 
 class AuthReqForm(forms.Form):
-    identifier = forms.CharField(required=False)
-    rp = forms.ModelChoiceField(required=False, queryset=None)
+    identifier = forms.CharField(
+        required=False, label=_(u'OP Identifier'))
+    rp = forms.ModelChoiceField(
+        required=False, queryset=None, label=_(u'Relying Party'))
 
     def __init__(self, vender='connect.rp.core', *args, **kwargs):
-        qset = RelyingParty.objects.filter(authority__vender=vender)
+        if vender:
+            qset = RelyingParty.objects.filter(authority__vender=vender)
+        else:
+            qset = RelyingParty.objects.all()
+            
         self.base_fields["rp"].queryset = qset
         super(AuthReqForm, self).__init__(*args, **kwargs)
 

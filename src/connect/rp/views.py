@@ -1,15 +1,17 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*
 from django.template.response import TemplateResponse
 from django.http.response import HttpResponseRedirect, Http404
 from django.contrib.auth import login
 from django.utils.importlib import import_module
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
+from django.contrib.auth import authenticate
 
 from forms import AuthReqForm, SignUpForm, SelectForm
-from connect.rp.models import SignOn, Identity, Authority
+from connect.rp.models import SignOn, Identity, Authority, RelyingParty
 from connect.messages.id_token import IdToken
 from jose.base import JoseException
+from django.conf import settings as app_settings
 
 import requests
 
@@ -22,7 +24,7 @@ def load_signon(request):
 
 
 def auth_login(request, user):
-    user.backend = 'django.contrib.auth.backends.ModelBackend'
+    user = authenticate(user=user)
     login(request, user)
 
 
@@ -93,7 +95,7 @@ def default(request):
 
 def auth(request, vender, action, mode, *args, **kwargs):
     mod = import_module(
-        "connect.venders.%s.auth" % (vender or "core"))
+        "connect.venders.%s.auth" % (vender.split('.')[-1] or "core"))
     func = "%s_%s" % (action, mode or "any")
     return getattr(mod, func)(request, vender, action, mode, *args, **kwargs)
 
@@ -138,7 +140,9 @@ def bind(request, signon=None):
         auth_login(request, identity.user)
         identity.id_token = signon.id_token
         identity.save()
-        print ">>>> comeback ", signon.id_token, identity.id_token
+        print ">>>> comeback ", signon.id_token, identity.id_token,
+        print request.user, request.user.is_authenticated()
+        
         
         signon.user = request.user
         signon.save()
@@ -148,8 +152,10 @@ def bind(request, signon=None):
 
     #: TODO: Appcaition MUST be able to specify forms.
     if identities.count() == 0:
+        print ">>> sign up"
         form = SignUpForm(signon=signon)
     else:
+        print ">>> selection (NO!)"
         form = SelectForm(signon=signon)
 
     return TemplateResponse(
@@ -199,6 +205,19 @@ def signup(request):
     return TemplateResponse(
         request,
         form.template_name,
+        dict(request=request, form=form))
+
+
+def connect(request):
+    form = AuthReqForm(vender=None, data=request.POST or None) 
+    if request.method == "POST" and form.is_valid(): 
+        rp = form.cleaned_data['rp']
+        return auth(request, 
+            rp.authority.vender, "req", None)
+
+    return TemplateResponse(
+        request,
+        "rp/connect.html",
         dict(request=request, form=form))
 
 
