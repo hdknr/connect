@@ -6,12 +6,13 @@ from django.utils.translation import ugettext_lazy as _
 from connect.messages.discovery import ProviderMeta
 from connect.messages.reg import ClientMeta, ClientReg
 from connect.messages.auth import AuthReq, AuthRes
-from connect.messages.token import TokenResCode
+from connect.messages.token import TokenResCode, TokenRes
 from connect.messages.id_token import IdToken
+from connect.messages.userinfo import UserInfo
 from jose.jwk import JwkSet, Jwk
 import requests
 import traceback
-
+import re
 
 _IDENTIFIER = dict(
     max_length=250,
@@ -20,9 +21,38 @@ _IDENTIFIER = dict(
 )
 
 _RELATION = '%(app_label)s_%(class)s_related'
+_JSON_FIELD = re.compile('^(?P<name>.+)_object$')
+
+class BaseModel(models.Model):
+    _serializer = {}
+    
+    def find_serializer_name(self, name):
+        _name = _JSON_FIELD.search(name)
+        return _name and _name.groupdict()['name'] or None
+
+    def __getattr__(self, name):
+        _name = self.find_serializer_name(name)
+        if _name:
+            val = getattr(self, _name)
+            return val and self._serializer[_name].from_json(val) or None
+
+        return super(BaseModel, self).__getattr__(name)
+    
+    def __setattr__(self, name, value):
+        _name = self.find_serializer_name(name)
+        if _name:
+            if value:
+                setattr(self, _name, value.to_json(indent=2))
+            else:
+                setattr(self, _name, None) 
+        else:
+            super(BaseModel, self).__setattr__(name, value)
+
+    class Meta:
+        abstract = True
 
 
-class AbstractKey(models.Model):
+class AbstractKey(BaseModel):
     jku = models.CharField(
         _(u'Jku'), max_length=200,
         null=True, blank=True, default=None)
@@ -38,16 +68,10 @@ class AbstractKey(models.Model):
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
+    _serializer = dict(key=Jwk)
+
     class Meta:
         abstract = True
-
-    @property
-    def jwk(self):
-        return Jwk.from_json(self.key)
-
-    @jwk.setter
-    def jwk(self, value):
-        self.key = value.to_json(indent=2)
 
     def __unicode__(self):
         return "%s %s %s %s" % (
@@ -57,8 +81,7 @@ class AbstractKey(models.Model):
             self.x5t or '')  
 
 
-
-class KeyOwner(models.Model):
+class KeyOwner(BaseModel):
 
     def save_object(self, obj, uri, *args, **kwargs):
         for jwk in obj.keys:
@@ -67,13 +90,13 @@ class KeyOwner(models.Model):
                 jku=uri,
                 kid=jwk.kid,
                 x5t=jwk.x5t)
-            key.key = jwk.to_json(indent=2)
+            key.key_object = jwk
             key.save()
 
     def load_object(self, obj_class, uri, kid=None, x5t=None, *args, **kwargs):
         try:
             q = dict([(k, v) for k, v in dict(uri=uri, kid=kid, x5t=x5t).items() if v ])
-            keys = [k.jwk for k in self.keys.filter(**q)]
+            keys = [k.key_object for k in self.keys.filter(**q)]
             ret = JwkSet(keys=keys)
             return ret
         except:
@@ -95,6 +118,8 @@ class AbstractAuthority(KeyOwner):
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
+    _serializer = dict(auth_metadata=ProviderMeta)
+
     def __unicode__(self):
         return self.short_name
 
@@ -107,25 +132,13 @@ class AbstractAuthority(KeyOwner):
             identifier=ProviderMeta.selfissued_issuer)
         return authority
 
-    @property
-    def openid_configuration(self):
-        return ProviderMeta.from_json(self.auth_metadata)
-
-    @openid_configuration.setter
-    def openid_configuration(self, value):
-        self.auth_metadata = value.to_json(indent=2)
-
     def update_key(self):
         # TODO: SSL ann verify certificate.
-        jku = self.openid_configuration.jwks_uri
+        jku = self.auth_metadata_object.jwks_uri  
         if jku:
             res = requests.get(jku)
             jwkset = JwkSet.from_json(res.content)
             self.save_object(jwkset, jku)
-
-#;    def jwkset(self, jku=None):
-#;        jku = jku or self.openid_configuration.jwks_uri
-#;        return self.load_object(JwkSet, jku).jwkset
 
 
 class AbstractRelyingParty(KeyOwner):
@@ -143,28 +156,13 @@ class AbstractRelyingParty(KeyOwner):
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
+    _serializer = dict(auth_metadata=ClientMeta, reg=ClientReg)
+
     def __unicode__(self):
         return self.authority.__unicode__() + " " + self.short_name
 
     class Meta:
         abstract = True
-
-    @property
-    def authmeta(self):
-        return ClientMeta.from_json(self.auth_metadata)
-
-    @authmeta.setter
-    def authmeta(self, value):
-        self.auth_metadata = value.to_json()
-
-    @property
-    def credentials(self):
-        return ClientReg.from_json(self.reg)
-
-    @credentials.setter
-    def credentials(self, value):
-        self.reg = value.to_json()
-
 
 
 class AbstractPreference(models.Model):
@@ -177,7 +175,7 @@ class AbstractPreference(models.Model):
         abstract = True
 
 
-class AbstractIdentity(models.Model):
+class AbstractIdentity(BaseModel):
     authority = models.ForeignKey(
         'Authority',
         related_name='%(app_label)s_%(class)s_related')
@@ -192,10 +190,13 @@ class AbstractIdentity(models.Model):
         User,
         related_name='%(app_label)s_%(class)s_related')
 
+    id_token = models.TextField(default='{}')
     userinfo = models.TextField(default='{}')
 
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+
+    _serializer = dict(id_token=IdToken, userinfo=UserInfo)
 
     class Meta:
         abstract = True
@@ -207,7 +208,7 @@ class AbstractIdentity(models.Model):
         )
 
 
-class AbstractSignOn(models.Model):
+class AbstractSignOn(BaseModel):
     authority = models.ForeignKey(
         'Authority',
         related_name='%(app_label)s_%(class)s_related')
@@ -240,21 +241,9 @@ class AbstractSignOn(models.Model):
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
-    @property
-    def authreq(self):
-        return AuthReq.from_json(self.request)
+    _serializer = dict(
+        request=AuthReq, response=AuthRes, tokens=TokenRes)
 
-    @authreq.setter
-    def authreq(self, value):
-        self.request = value.to_json(indent=2)
-
-    @property
-    def authres(self):
-        return AuthRes.from_json(self.request)
-
-    @authres.setter
-    def authres(self, value):
-        self.response = value.to_json(indent=2)
 
     @property
     def identities(self):
@@ -262,12 +251,12 @@ class AbstractSignOn(models.Model):
 
     @property
     def access_token(self):
-        token_response = self.token_response
+        token_response = self.tokens_object
         return token_response and token_response.access_token
 
     @property
     def id_token(self):
-        token_response = self.token_response
+        token_response = self.tokens_object
         if token_response:
             id_token = IdToken.parse(
                 token_response.id_token,
@@ -276,17 +265,12 @@ class AbstractSignOn(models.Model):
             return id_token
         return None
 
-    @property
-    def token_response(self):
-        if self.tokens:
-            return TokenResCode.from_json(self.tokens)
-        return None
 
     class Meta:
         abstract = True
 
 
-class AbstractScope(models.Model):
+class AbstractScope(BaseModel):
     scope = models.CharField(
         _(u'Scope'), max_length=250, unique=True,)
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
@@ -296,7 +280,7 @@ class AbstractScope(models.Model):
         abstract = True
 
 
-class AbstractToken(models.Model):
+class AbstractToken(BaseModel):
     signon = models.ForeignKey(
         'SignOn',
         related_name='%(app_label)s_%(class)s_related')

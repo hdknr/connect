@@ -134,7 +134,7 @@ def create_authority(tenant=None, *args, **kwargs):
     if res.status_code != 200:
         raise Exception("Failed to get OpenID Configuration")
 
-    authority.openid_configuration = ProviderMeta.from_json(res.content)
+    authority.auth_metadata_object = ProviderMeta.from_json(res.content)
     authority.save()
 
     authority.update_key()

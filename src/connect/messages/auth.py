@@ -25,6 +25,8 @@ _auth_req_connect = dict(
     id_token_hint=None,
     login_hint=None,
     acr_values=None,
+    # https://openid.net/specs/openid-connect-session-1_0.html#CreatingUpdatingSessions
+    session_state=None,     # OpenID Connect Session  1.0
 )
 
 # 7.2.1. Providing Information

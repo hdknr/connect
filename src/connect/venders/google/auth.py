@@ -32,7 +32,7 @@ def req_any(request, vender, action, mode):
 
     if request.method == "POST" and form.is_valid():
         rp = form.cleaned_data['rp']
-        conf = rp.authority.openid_configuration
+        conf = rp.authority.auth_metadata_object
 
         ruri = request.build_absolute_uri(
             reverse('rp_auth', kwargs=dict(
@@ -85,7 +85,7 @@ def res_code(request, vender, action, mode):
     errors = None
     try:
         signon = SignOn.objects.get(state=authres.state)
-        signon.authres = authres
+        signon.response_object = authres
         signon.save()
 
         if authres.error:
@@ -104,14 +104,13 @@ def res_code(request, vender, action, mode):
             signon.save()
     
     
-    ctx = RequestContext(
-        request,dict(
+    ctx = dict(
             request=request,
             signon=signon,
             authres=authres,
-            tokenres=signon.token_response,
+            tokenres=signon.tokens_object,
             errors=errors,
-    ))
+    )
 
     return TemplateResponse(
         request, 'venders/google/res_error.html', ctx)

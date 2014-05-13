@@ -42,9 +42,9 @@ def request_token(request, signon, vender):
     '''
     '''
 
-    credentials = signon.party.credentials
+    credentials = signon.party.reg_object
 
-    uri = signon.party.authority.openid_configuration.token_endpoint
+    uri = signon.party.authority.auth_metadata_object.token_endpoint
     ruri = request.build_absolute_uri(
         reverse('rp_auth', kwargs=dict(
             vender=vender, action='res', mode='code',
@@ -120,10 +120,12 @@ def bind(request, signon=None):
     signon = signon or load_signon(request)
 
     if request.user.is_authenticated():
-        signon.party.rp_identity_related.get_or_create(
+        identity, created = signon.party.rp_identity_related.get_or_create(
             authority=signon.authority,
             subject=signon.subject,
             user=request.user)
+        identity.id_token = signon.id_token.to_json(indent=2)
+        identity.save()
         signon.user = request.user
         signon.save()
 
@@ -132,11 +134,12 @@ def bind(request, signon=None):
     identities = signon.identities
     if identities.count() == 1:
         auth_login(request, identities[0].user)
+        identitites[0].id_token = signon.id_token.to_json(indent=2)
         signon.user = request.user
         signon.save()
         return HttpResponseRedirect('/')       # TODO:
 
-    save_signon(request, signon)
+    save_signon(request, signon)    # Save SingOn object in session
 
     #: TODO: Appcaition MUST be able to specify forms.
     if identities.count() == 0:
@@ -271,7 +274,7 @@ def userinfo(request, id):
         identity = None
     
     id_token = signon.id_token
-    conf = signon.party.authority.openid_configuration
+    conf = signon.party.authority.auth_meta_objejct
     access_token = signon.access_token 
     userinfo = None
     if conf and conf.userinfo_endpoint and access_token:

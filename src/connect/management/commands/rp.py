@@ -42,7 +42,7 @@ class Command(GenericCommand):
         print "Relying Party", "ID=", id
         print rp.identifier
         print rp.authority
-        print rp.credentials.to_json(indent=2)
+        print rp.reg_object.to_json(indent=2)
         
         print "Authority", "ID=", rp.authority.id
         print rp.authority.identifier

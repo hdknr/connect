@@ -20,7 +20,7 @@ class Authority(AbstractAuthority):
 
     @property
     def openid_configuration(self):
-        meta = super(Authority, self).openid_configuration
+        meta = self.auth_metadata_object
         meta.issuer = self.identifier
         if self.tenant:
             meta['tenant'] = self.tenant

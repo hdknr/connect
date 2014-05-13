@@ -90,8 +90,8 @@ class SignOn(AbstractSignOn):
             nonce=n,
             state=s,
             user=user,
-            request=authreq and authreq.to_json(),
         )
+        signon.request_object = authreq
         signon.save()
         return signon
 

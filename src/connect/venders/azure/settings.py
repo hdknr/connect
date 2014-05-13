@@ -36,7 +36,7 @@ class RelyingPartyForm(BaseRelyingPartyForm):
 
     def __init__(self, data=None, instance=None, *args, **kwargs):
         if instance and not data:
-            credentials = instance.credentials
+            credentials = instance.reg_object
             self.base_fields['client_id'].initial = credentials.client_id
             self.base_fields['client_secret'].initial = credentials.client_secret
         
@@ -106,7 +106,7 @@ def edit(request, vender, id, command):
                 client_id=form.cleaned_data['client_id'], 
                 client_secret=form.cleaned_data['client_secret'], 
             )
-            form.instance.credentials = reg
+            form.instance.reg_object = reg
             form.save() 
             return HttpResponseRedirect( 
                 reverse('rp_settings', 
@@ -115,7 +115,7 @@ def edit(request, vender, id, command):
                        ))
             )
         try:
-            reg = form.instance.credentials
+            reg = form.instance.reg_object
         except Exception, ex:
             print ex
             pass
@@ -159,7 +159,7 @@ def create_authority(tenant, *args, **kwargs):
         authority.save()
     
 
-    authority.openid_configuration = meta
+    authority.auth_metadata_object = meta
     authority.save()
 
     authority.update_key()
