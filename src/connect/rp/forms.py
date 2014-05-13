@@ -41,6 +41,7 @@ class SignUpForm(forms.Form):
         self.signon = signon
         if signon:
             self.base_fields["signon"].initial = signon.id
+            self.base_fields["email"].initial = signon.userinfo_object.email
 
         super(SignUpForm, self).__init__(*args, **kwargs)
 

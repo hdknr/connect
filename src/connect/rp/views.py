@@ -82,6 +82,20 @@ def request_token(request, signon, vender):
     signon.subject = id_token.sub 
     signon.verified = True
     signon.save()
+
+    conf = signon.party.authority.auth_metadata_object
+    access_token = signon.access_token 
+    userinfo = None
+    if conf and conf.userinfo_endpoint and access_token:
+        headers = {
+            "Authorization": "Bearer %s" % access_token, 
+            "content-type": "application/json",
+        }
+        res = requests.get(conf.userinfo_endpoint, headers=headers)
+        if res.status_code == 200:
+            signon.userinfo = res.content    
+            signon.save()
+
     return id_token
 
 
@@ -189,7 +203,8 @@ def signup(request):
 
     signon = load_signon(request)
 
-    form = SignUpForm(signon, data=request.POST)
+    form = SignUpForm(signon, data=request.POST or None)
+    
     if form.is_valid():
         auth_login(request, user=form.create_user())
         signon.user = request.user
@@ -298,7 +313,7 @@ def userinfo(request, id):
         identity = None
     
     id_token = signon.id_token
-    conf = signon.party.authority.auth_meta_objejct
+    conf = signon.party.authority.auth_metadata_object
     access_token = signon.access_token 
     userinfo = None
     if conf and conf.userinfo_endpoint and access_token:

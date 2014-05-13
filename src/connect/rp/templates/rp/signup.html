@@ -1,6 +1,15 @@
-<h1>Sign Up User</h1>
+{% extends "base.html" %}
 
+{% block main %}
 <form method="post" action="{{form.url}}">{% csrf_token %}
-{{form}}
- <input type="submit" name="submit" value="Sign Up"/>
+    <fieldset>
+    <legend>Sign Up by OpenID Connect</legend>
+    <table>
+    {{form.as_table}}
+    </table>
+    <div class="form-actions">
+        <input class="btn btn-primary btn-lg pull-right" type="submit" value="Sign Up">
+    </div>
+    </fieldset>
 </form>
+{% endblock %}

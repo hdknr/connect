@@ -4,6 +4,7 @@ from jose.utils import merged
 
 _userinfo_fields = dict(
     sub=None, 
+    email=None,
 )
 
 class UserInfo(BaseObject):
