@@ -1,4 +1,11 @@
-<h1>Google+ Relying Party </h1>
+{% extends "base.html" %} 
+
+{% block title %}
+Google+ Relying Party 
+{% endblock %}
+
+{% block main %}
+<h2>Guideline</h2>
 <ul>
  <li>Look At Google Authentication at 
     <a target="_outside" 
@@ -19,9 +26,21 @@
  </li>
 </ul>
 
+<h2>Relying Party Edit</h2>
+<div>
 <form method="post" action={{ action_url }} > {% csrf_token %}
-  Idenfider = {{ form.instance.credentials.client_id }} 
-  {{ form.as_p }}
-  <button type="submit" name="save" value="save">Save</button>
-  <a href="{% url 'rp_settings' vender=vender id=form.instance.id %}">Cancel</a> 
+  Idenfider = {{ form.instance.reg_object.client_id }} 
+<table>
+  {{ form.as_table }}
+</table>
+<div style="text-align:right">
+  <button class="btn btn-default" type="submit" name="save" value="save">Save</button>
+  {% if form.instance.id %}
+    <a  class="btn btn-default" href="{% url 'rp_settings' vender=vender id=form.instance.id %}">Cancel</a> 
+  {% else %}
+    <a  class="btn btn-default" href="{% url 'rp_settings' vender=vender  %}">Cancel</a> 
+  {% endif %}
+</div>
 </form>
+</div>
+{% endblock %}

@@ -67,7 +67,7 @@ def request_token(request, signon, vender):
     signon.save()
 
     try:
-        id_token = signon.id_token
+        id_token = signon.get_id_token()
     except JoseException, ex:
         id_token = None
 
@@ -124,7 +124,8 @@ def bind(request, signon=None):
             authority=signon.authority,
             subject=signon.subject,
             user=request.user)
-        identity.id_token = signon.id_token.to_json(indent=2)
+        print ">>>> current", signon.id_token
+        identity.id_token_object  = signon.id_token_object
         identity.save()
         signon.user = request.user
         signon.save()
@@ -133,8 +134,12 @@ def bind(request, signon=None):
 
     identities = signon.identities
     if identities.count() == 1:
-        auth_login(request, identities[0].user)
-        identitites[0].id_token = signon.id_token.to_json(indent=2)
+        identity = identities[0]
+        auth_login(request, identity.user)
+        identity.id_token = signon.id_token
+        identity.save()
+        print ">>>> comeback ", signon.id_token, identity.id_token
+        
         signon.user = request.user
         signon.save()
         return HttpResponseRedirect('/')       # TODO:
@@ -239,7 +244,7 @@ def signon_detail(request, id):
         identity = Identity.objects.get(user=request.user, subject=signon.subject)
     else:
         return Http404
-    id_token = signon.id_token
+    id_token = signon.id_token_object
 
     return TemplateResponse(
         request,

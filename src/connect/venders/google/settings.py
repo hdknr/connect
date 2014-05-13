@@ -30,6 +30,9 @@ import requests
 
 
 class RelyingPartyForm(BaseRelyingPartyForm):
+    class Meta:
+        model = RelyingParty
+        exclude = ['authority', 'auth_settings', 'auth_metadata',]
     pass
 
 
@@ -90,14 +93,9 @@ def edit(request, vender, id, command):
             return HttpResponseRedirect( 
                 reverse('rp_settings', 
                        kwargs=dict(
-                        vender=vernder, id=id 
+                        vender=vender, id=id 
                        ))
             )
-        try:
-            reg = form.instance.credentials
-        except Exception, ex:
-            print ex
-            pass
     else:
         form = RelyingPartyForm(instance=instance)
 

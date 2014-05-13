@@ -52,8 +52,7 @@ def req_any(request, vender, action, mode):
 
         signon = SignOn.create(request.user, rp, authreq)
         request.session['state'] = signon.state
-        authreq.nonce = None            #: nonce not supported
-
+        authreq.nonce = None            #: TODO: nonce not supported ?
 
         if conf.authorization_endpoint.find('?') > 0:
             sep = "&"
@@ -80,6 +79,8 @@ def res_code(request, vender, action, mode):
     '''
     authres = AuthRes.from_url(request.get_full_path())
     valid_state = authres.state == request.session['state']
+    if not valid_state:
+        raise Exception("Invalid State")
 
     signon = None
     errors = None

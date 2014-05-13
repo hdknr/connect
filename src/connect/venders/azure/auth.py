@@ -61,6 +61,8 @@ def res_code(request, vender, action, mode):
     '''
     authres = AuthRes.from_url(request.get_full_path())
     valid_state = authres.state == request.session['state']
+    if not valid_state:
+        raise Exception("Invalid State")
 
     signon = None
     errors = None
@@ -83,7 +85,6 @@ def res_code(request, vender, action, mode):
         if signon:
             signon.errors = errors
             signon.save()
-    
     
     ctx = dict(
             request=request,

@@ -63,8 +63,8 @@ class RelyingPartyKey(AbstractKey):
 class Preference(AbstractPreference):
 
     class Meta:
-        verbose_name = _(u'Relying Paryt Preference')
-        verbose_name_plural = _(u'Relying Paryt Preferences')
+        verbose_name = _(u'Relying Party Preference')
+        verbose_name_plural = _(u'Relying Party Preferences')
 
 
 class SignOn(AbstractSignOn):

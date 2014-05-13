@@ -53,7 +53,7 @@ class Command(GenericCommand):
             az = Authority.objects.get(id=id)
             az.update_key()
             for key in az.keys.all():
-                print key and key.jwkset.to_json(indent=2) 
+                print key and key.key_object.to_json(indent=2) 
 
         except Exception, ex:
             print traceback.format_exc()
@@ -91,8 +91,8 @@ class Command(GenericCommand):
         
         try:
             so = SignOn.objects.get(id=id)
-            print so.id_token.to_json()
-            print "JWT is  verified:", so.id_token.verified
+            print so.id_token_object.to_json(indent=2)
+            print "JWT is  verified:", so.id_token_object.verified
         except JoseException, ex:
             print ex.message
             print ex.jobj and ex.jobj.to_json()

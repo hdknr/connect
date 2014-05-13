@@ -36,7 +36,7 @@ class BaseModel(models.Model):
             val = getattr(self, _name)
             return val and self._serializer[_name].from_json(val) or None
 
-        return super(BaseModel, self).__getattr__(name)
+        return self.__getattribute__(name)
     
     def __setattr__(self, name, value):
         _name = self.find_serializer_name(name)
@@ -46,7 +46,7 @@ class BaseModel(models.Model):
             else:
                 setattr(self, _name, None) 
         else:
-            super(BaseModel, self).__setattr__(name, value)
+            super(BaseModel, self).__setattr__(name, value) 
 
     class Meta:
         abstract = True
@@ -236,13 +236,17 @@ class AbstractSignOn(BaseModel):
     request = models.TextField(default='{}')
     response = models.TextField(default='{}')
     tokens = models.TextField(default='{}')
+    id_token = models.TextField(default='{}')
+    userinfo = models.TextField(default='{}')
     errors = models.TextField(default='{}')
+
 
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     _serializer = dict(
-        request=AuthReq, response=AuthRes, tokens=TokenRes)
+        request=AuthReq, response=AuthRes, tokens=TokenRes,
+        id_token=IdToken, userinfo=UserInfo)
 
 
     @property
@@ -254,17 +258,17 @@ class AbstractSignOn(BaseModel):
         token_response = self.tokens_object
         return token_response and token_response.access_token
 
-    @property
-    def id_token(self):
+    def get_id_token(self):
         token_response = self.tokens_object
         if token_response:
             id_token = IdToken.parse(
                 token_response.id_token,
                 sender=self.authority,
                 recipient=self.party)
-            return id_token
+            self.id_token_object = id_token 
+            self.save()
+            return id_token     # has "verified" fields
         return None
-
 
     class Meta:
         abstract = True
