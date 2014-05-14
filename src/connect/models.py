@@ -13,6 +13,9 @@ from jose.jwk import JwkSet, Jwk
 import requests
 import traceback
 import re
+from datetime import datetime
+import pytz
+import time
 
 _IDENTIFIER = dict(
     max_length=250,
@@ -22,6 +25,8 @@ _IDENTIFIER = dict(
 
 _RELATION = '%(app_label)s_%(class)s_related'
 _JSON_FIELD = re.compile('^(?P<name>.+)_object$')
+_EPOCH_TIME = re.compile('^(?P<name>.+)_epoch$')
+
 
 class BaseModel(models.Model):
     _serializer = {}
@@ -35,6 +40,11 @@ class BaseModel(models.Model):
         if _name:
             val = getattr(self, _name)
             return val and self._serializer[_name].from_json(val) or None
+
+        _name = _EPOCH_TIME.search(name) 
+        _val = _name and getattr(self, _name.groupdict()['name'])
+        if _val and isinstance(_val, datetime):
+            return int(time.mktime(_val.astimezone(pytz.utc).timetuple()))
 
         return self.__getattribute__(name)
     
