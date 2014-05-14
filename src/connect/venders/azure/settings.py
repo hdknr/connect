@@ -61,7 +61,7 @@ def default(request, vender, id, command):
         
     )
     return TemplateResponse(
-        request, 'venders/google/settings_detail.html', ctx)
+        request, 'venders/azure/settings_detail.html', ctx)
 
 
 @staff_member_required
@@ -89,7 +89,7 @@ def items(request, vender, id, command):
         vender=vender,
     )
     return TemplateResponse(
-        request, 'venders/google/settings_items.html', ctx)
+        request, 'venders/azure/settings_items.html', ctx)
 
 
 @staff_member_required
@@ -111,7 +111,7 @@ def edit(request, vender, id, command):
             return HttpResponseRedirect( 
                 reverse('rp_settings', 
                        kwargs=dict(
-                        vender=vender, id=id 
+                        vender=vender, id=form.instance.id,
                        ))
             )
         try:
@@ -135,7 +135,7 @@ def edit(request, vender, id, command):
         vender=vender,
     )
     return TemplateResponse(
-        request, 'venders/google/settings_edit.html', ctx)
+        request, 'venders/azure/settings_edit.html', ctx)
 
 
 def create_authority(tenant, *args, **kwargs):

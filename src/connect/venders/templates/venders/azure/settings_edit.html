@@ -1,36 +1,26 @@
 {% extends "base.html" %} 
 
 {% block title %}
-Google+ Relying Party 
+Windows Azure AD Relying Party
 {% endblock %}
 
 {% block main %}
 <h2>Guideline</h2>
+
 <ul>
- <li>Look At Google Authentication at 
-    <a target="_outside" 
-    href="https://developers.google.com/accounts/docs/OAuth2Login">Using OAuth 2.0 for Login (OpenID Connect)</a>
+ <li>
+  $ python manage.py rp create_authority connect.venders.azure --tenant=yourtenant.onmicrosoft.com
+ </li>
+ <li>
+   Go to <a target="_outside2" href="https://manage.windowsazure.com/">Azure Console</a>
  </li>
 
- <li>
-   Go to <a target="_outside2" href="https://console.developers.google.com/project">Developer Console</a>
- </li>
- <li>
-   Select "PROJECT NAME", or "CREATE PROJECT".
- </li>
- <li>
-   Go to "APIs & auth > Credentials"
- </li>
- <li>
-   "CREATE NEW CLIENT ID" and use "{{ redirect_uri }}" as Redirect Uris" for "web" application.
- </li>
 </ul>
 
 <h2>Relying Party Edit</h2>
 <div>
 
 <form method="post" action={{ action_url }} > {% csrf_token %}
-<div>
   Idenfider = {{ form.instance.reg_object.client_id }} 
 
 <fieldset>
@@ -59,12 +49,6 @@ Google+ Relying Party
     </div>
     {% endif %}
     
-    {% if form.reg %}
-    <div class="form-group input_id_reg">
-    {{ form.reg.label }}
-    {{ form.reg}}
-    </div>
-    {% endif %}
     
     <div class="form-actions">
           <button class="btn btn-primary btn-lg pull-right" type="submit" name="save" value="save">Save</button>
@@ -82,4 +66,3 @@ Google+ Relying Party
 </form>
 </div>
 {% endblock %}
-

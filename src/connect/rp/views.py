@@ -155,6 +155,7 @@ def bind(request, signon=None):
     if identities.count() == 0:
         print ">>> sign up"
         form = SignUpForm(signon=signon)
+        print form.as_table()
     else:
         print ">>> selection (NO!)"
         form = SelectForm(signon=signon)
