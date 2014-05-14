@@ -74,14 +74,16 @@ def request_token(request, signon, vender):
         id_token = None
 
     if id_token is None  or not id_token.verified:
+        #: TODO: raise Exception for each error.
         signon.subject = id_token and id_token.sub or None
         signon.save()
         raise Exception("invalid id_token")
 
-    #: TODO other id token values
     signon.subject = id_token.sub 
-    signon.verified = True
+    signon.verified = id_token.is_available(signon.party.identifier)
     signon.save()
+    if not signon.verified:
+        raise Exception("invalid id_token")
 
     conf = signon.party.authority.auth_metadata_object
     access_token = signon.access_token 
@@ -136,30 +138,15 @@ def bind(request, signon=None):
     signon = signon or load_signon(request)
 
     if request.user.is_authenticated():
-        identity, created = signon.party.rp_identity_related.get_or_create(
-            authority=signon.authority,
-            subject=signon.subject,
-            user=request.user)
-        print ">>>> current", signon.id_token
-        identity.id_token_object  = signon.id_token_object
-        identity.save()
-        signon.user = request.user
-        signon.save()
-
+        signon.bind_identity(request.user)
         return HttpResponseRedirect('/')       # TODO:
 
     identities = signon.identities
     if identities.count() == 1:
         identity = identities[0]
         auth_login(request, identity.user)
-        identity.id_token = signon.id_token
-        identity.save()
-        print ">>>> comeback ", signon.id_token, identity.id_token,
-        print request.user, request.user.is_authenticated()
-        
-        
-        signon.user = request.user
-        signon.save()
+        signon.bind_identity(request.user)
+
         return HttpResponseRedirect('/')       # TODO:
 
     save_signon(request, signon)    # Save SingOn object in session
@@ -207,14 +194,7 @@ def signup(request):
     
     if form.is_valid():
         auth_login(request, user=form.create_user())
-        signon.user = request.user
-        signon.save()
-
-        signon.party.rp_identity_related.get_or_create(
-            authority=signon.authority,
-            subject=signon.subject,
-            user=request.user)
-
+        signon.bind_identity(request.user)
         return HttpResponseRedirect('/')       # TODO:
 
     return TemplateResponse(

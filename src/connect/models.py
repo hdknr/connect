@@ -31,6 +31,9 @@ _EPOCH_TIME = re.compile('^(?P<name>.+)_epoch$')
 class BaseModel(models.Model):
     _serializer = {}
     
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+
     def find_serializer_name(self, name):
         _name = _JSON_FIELD.search(name)
         return _name and _name.groupdict()['name'] or None
@@ -75,9 +78,6 @@ class AbstractKey(BaseModel):
 
     key = models.TextField(default='{}')
 
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
-
     _serializer = dict(key=Jwk)
 
     class Meta:
@@ -96,10 +96,7 @@ class KeyOwner(BaseModel):
     def save_object(self, obj, uri, *args, **kwargs):
         for jwk in obj.keys:
             key, created = self.keys.get_or_create(
-                owner=self,
-                jku=uri,
-                kid=jwk.kid,
-                x5t=jwk.x5t)
+                owner=self, jku=uri, kid=jwk.kid, x5t=jwk.x5t)
             key.key_object = jwk
             key.save()
 
@@ -124,9 +121,6 @@ class AbstractAuthority(KeyOwner):
     short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
     identifier = models.CharField(_(u'Identifier'), **_IDENTIFIER)
     auth_metadata = models.TextField(default='{}')      #: For OpenID Connect
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     _serializer = dict(auth_metadata=ProviderMeta)
 
@@ -156,15 +150,10 @@ class AbstractRelyingParty(KeyOwner):
     identifier = models.CharField(
         _(u'Identifier'), max_length=250, db_index=True)
 
-    authority = models.ForeignKey(
-        'Authority',
-        related_name='%(app_label)s_%(class)s_related')
+    authority = models.ForeignKey('Authority', related_name=_RELATION)
     auth_metadata = models.TextField(default='{}')
     reg = models.TextField(_(u'Client Registration'), default='{}')
     auth_settings = models.TextField(_(u'Authentication Settings'), default='{}')
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     _serializer = dict(auth_metadata=ClientMeta, reg=ClientReg)
 
@@ -186,25 +175,20 @@ class AbstractPreference(models.Model):
 
 
 class AbstractIdentity(BaseModel):
-    authority = models.ForeignKey(
-        'Authority',
-        related_name='%(app_label)s_%(class)s_related')
-    party = models.ForeignKey(
-        'RelyingParty',
-        related_name='%(app_label)s_%(class)s_related')
+    authority = models.ForeignKey('Authority', related_name=_RELATION)
+    party = models.ForeignKey('RelyingParty', related_name=_RELATION)
 
     subject = models.CharField(
         _(u'Subject'), max_length=200)
 
-    user = models.ForeignKey(
-        User,
-        related_name='%(app_label)s_%(class)s_related')
+    user = models.ForeignKey(User, related_name=_RELATION)
+
+    signon = models.ForeignKey(
+        'SignOn', related_name=_RELATION,
+        null=True, blank=True, default=None, on_delete=models.SET_NULL)
 
     id_token = models.TextField(default='{}')
     userinfo = models.TextField(default='{}')
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     _serializer = dict(id_token=IdToken, userinfo=UserInfo)
 
@@ -219,21 +203,19 @@ class AbstractIdentity(BaseModel):
 
 
 class AbstractSignOn(BaseModel):
-    authority = models.ForeignKey(
-        'Authority',
-        related_name='%(app_label)s_%(class)s_related')
-
-    party = models.ForeignKey(
-        'RelyingParty',
-        related_name='%(app_label)s_%(class)s_related')
+    authority = models.ForeignKey('Authority', related_name=_RELATION)
+    party = models.ForeignKey('RelyingParty', related_name=_RELATION)
 
     subject = models.CharField(
         _(u'Subject'), max_length=200,
         null=True, blank=True, default=None,)
 
     user = models.ForeignKey(
-        User,
-        related_name='%(app_label)s_%(class)s_related',
+        User, related_name=_RELATION,
+        null=True, blank=True, default=None)
+
+    identity = models.ForeignKey(
+        'Identity', related_name=_RELATION,
         null=True, blank=True, default=None)
 
     nonce = models.CharField(
@@ -250,14 +232,16 @@ class AbstractSignOn(BaseModel):
     userinfo = models.TextField(default='{}')
     errors = models.TextField(default='{}')
 
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
-
     _serializer = dict(
         request=AuthReq, response=AuthRes, tokens=TokenRes,
         id_token=IdToken, userinfo=UserInfo)
 
+
+    def __unicode__(self):
+        return "%s(%s)" % (
+            self.identity and self.identity.__unicode__() or "signon",
+            self.id or "",
+        )
 
     @property
     def identities(self):
@@ -280,6 +264,24 @@ class AbstractSignOn(BaseModel):
             return id_token     # has "verified" fields
         return None
 
+    def bind_identity(self, user):
+        if self.user and self.user != user:
+            raise Exception("Swapped user")
+
+        self.identity, created =  self.party.rp_identity_related.get_or_create(
+            authority=self.authority,
+            party =self.party,
+            subject=self.subject,
+            user=user)
+
+        self.identity.signon = self
+        self.identity.id_token = self.id_token
+        self.identity.userinfo = self.userinfo
+        self.identity.save()
+
+        self.user = user
+        self.save()
+
     class Meta:
         abstract = True
 
@@ -287,25 +289,16 @@ class AbstractSignOn(BaseModel):
 class AbstractScope(BaseModel):
     scope = models.CharField(
         _(u'Scope'), max_length=250, unique=True,)
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     class Meta:
         abstract = True
 
 
 class AbstractToken(BaseModel):
-    signon = models.ForeignKey(
-        'SignOn',
-        related_name='%(app_label)s_%(class)s_related')
+    signon = models.ForeignKey('SignOn', related_name=_RELATION)
     token_hash = models.CharField(max_length=100)
     token = models.TextField()
-    scopes = models.ManyToManyField(
-        'Scope',
-        related_name='%(app_label)s_%(class)s_related')
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+    scopes = models.ManyToManyField('Scope', related_name=_RELATION)
 
     class Meta:
         abstract = True
