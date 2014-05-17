@@ -4,40 +4,64 @@ from django.core.management.base import BaseCommand
 
 from optparse import make_option
 import sys
+import inspect
+import argparse
+
+class SubCommand(object):
+    name = ''
+    description = ''
+    args = []   # (tuple, dict)
+
+    def __init__(self, *args, **kwargs):
+        self.parser = argparse.ArgumentParser(
+            prog=self.name, add_help=False,
+            description=self.description.__unicode__())
+        map(lambda a: self.parser.add_argument(*a[0], **a[1]), self.args)
+
+    def help(self):
+        self.parser.print_help()
+
+    def execute(self, *args, **options):
+        params = self.parser.parse_args(args)
+        self.run(params, **options)
+        
+    def run(self, params , **options):
+        raise NotImplemented()
 
 
 class GenericCommand(BaseCommand):
     args = ''
     help = ''
     model = None
+    
+    @classmethod
+    def subcommands(cls):
+        return dict(
+            (v.name, v) for k, v in cls.__dict__.items()
+            if inspect.isclass(v) and issubclass(v, SubCommand))
+    
+    @classmethod
+    def subcommand(cls, name):
+        return cls.subcommands().get(name, None)
 
-    option_list = BaseCommand.option_list + (
-        make_option('--encoding', '-e',
-                    action='store',
-                    dest='encoding',
-                    default='utf-8',
-                    help=u'encoding'),
-    )
-    ''' Command Option '''
+    
+    def run_from_argv(self, argv):
+        ''' Django call this '''
+
+        args = argv and argv[0] == 'manage.py' and argv[2:] or argv[1:0]
+
+        if len(args) < 1:
+            for k, v in self.subcommands().items():
+                print "\n\n*** Subcommand:", k
+                v().help()
+
+        elif len(args) > 1 and args[0] == 'help':
+            command = self.subcommand(args[1])
+            command and command().help()
+        else: 
+            command = self.subcommand(args[0])
+            command and command().execute(*args[1:])
 
     def open_file(self, options):
         fp = sys.stdin if options['file'] == 'stdin' else open(options['file'])
         return fp
-
-    def command_help(self, *args, **options):
-        import re
-        for i in dir(self):
-            m = re.search('^command_(.*)$', i)
-            if m is None:
-                continue
-            print m.group(1)
-        print args
-        print options
-
-    def handle(self, *args, **options):
-        '''  command main '''
-
-        self.command = args[0] if len(args) > 0 else "help"
-        getattr(self,
-                'command_%s' % self.command,
-                GenericCommand.command_help)(*args[1:], **options)
