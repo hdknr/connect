@@ -171,6 +171,8 @@ class AbstractRelyingParty(KeyOwner):
     short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
     identifier = models.CharField(
         _(u'Identifier'), max_length=250, db_index=True)
+    secret = models.CharField(
+        _(u'Secret'), max_length=100, default=None, null=True, blank=True,)
 
     authority = models.ForeignKey('Authority', related_name=_RELATION)
     auth_metadata = models.TextField(default='{}')
