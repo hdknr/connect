@@ -1,31 +1,11 @@
 from tastypie.resources import Resource
 from tastypie.serializers import Serializer
-from connect.api import SingletonResource
+
+from . import SingletonResource, ObjectSerializer
+from .auth.bearer import BearerTokenAuth
+from connect.messages.userinfo import UserInfo
+import requests
 #from django.core.serializers.json import DjangoJSONEncoder
-#import json
-
-
-class UserInfo(object):
-    def __init__(self, initial=None):
-        self.__dict__['_data'] = {}
-        if hasattr(initial, 'items'):
-            self.__dict__['_data'] = initial
-
-    def __getattr__(self, name):
-        return self._data.get(name, None)
-
-    def __setattr__(self, name, value):
-        self.__dict__['_data'][name] = value
-
-    def to_dict(self):
-        return self._data
-
-
-class UserInfoSerializer(Serializer):
-    def to_json(self, data, options=None):
-        options = options or {}
-        print type(data), data
-        return "{}"
 
 
 class UserInfoResource(SingletonResource):
@@ -34,12 +14,33 @@ class UserInfoResource(SingletonResource):
         allowed_methods = ['get']
         resource_name = 'userinfo'
         object_class = UserInfo
-        serializer = UserInfoSerializer(formats=['json'])
+        authentication = BearerTokenAuth(scopes=['openid'])
+        serializer = ObjectSerializer(formats=['json'])
 
     def obj_get(self, bundle, tenant=None, *args, **kwargs):
-        print "obj_get>>>>>", args, kwargs
-        return UserInfo()
+        token = self._meta.authentication.token
 
-    def obj_get_list(self, bundle, tenant=None, *args, **kwargs):
-        print "obj_get_list>>>>>", args, kwargs
-        return [UserInfo()]
+        #: TODO: complete JSON
+        userinfo = UserInfo(
+            sub=token.signon.subject,
+        )
+
+        if token.scopes.filter(scope='email').exists():
+            # TODO: fill email
+            userinfo.email = "hoge@hoge.com"
+
+        return userinfo
+
+class UserInfoClient(object):
+    def call(self, signon, **kwargs):
+        token = signon.rp_token_related.order_by('-created_at')[0]
+        uri = signon.authority.auth_metadata_object.userinfo_endpoint 
+        return self.get_by_bearer(uri, token.token)
+
+    def get_by_bearer(self, uri, token):
+        r = requests.get(
+            uri, headers={
+                "Accept": 'application/json',
+                "Authorization": "Bearer %s" % token, 
+            })
+        return UserInfo.from_json(r.content)

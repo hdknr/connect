@@ -16,7 +16,9 @@ class SingletonResource(Resource):
     def get_context(self, request_type, request, **kwargs):
         ''' creating authentication context object
         '''
-        return None
+        context = dict(request_type=request_type)
+        context.update(kwargs)
+        return context
 
     def dispatch(self, request_type, request, **kwargs):
         ''' tastypie Resource#dipatch

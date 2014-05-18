@@ -45,14 +45,11 @@ class Preference(AbstractPreference):
 class Identity(AbstractIdentity):
     pass
 
-
 class SignOn(AbstractSignOn):
     pass
 
-
 class Scope(AbstractScope):
     pass
-
 
 class Token(AbstractToken):
     pass

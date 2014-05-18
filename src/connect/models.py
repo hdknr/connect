@@ -313,6 +313,11 @@ class AbstractSignOn(BaseModel):
 class AbstractScope(BaseModel):
     scope = models.CharField(
         _(u'Scope'), max_length=250, unique=True,)
+    authorities = models.ManyToManyField(
+        'Authority', related_name=_RELATION)
+
+    def __unicode__(self):
+        return self.scope or "(scope)"
 
     class Meta:
         abstract = True

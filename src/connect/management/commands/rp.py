@@ -9,6 +9,7 @@ from connect.messages.id_token import IdToken
 from jose.base import JoseException
 from optparse import make_option
 import traceback
+from connect.api.userinfo import UserInfoClient
 
 
 class Command(GenericCommand):
@@ -105,9 +106,23 @@ class Command(GenericCommand):
             for signon in SignOn.objects.filter(**query):
                 print so.id, so.party, so.nonce, so.state
 
-    class IdTokenDescription(SubCommand):
-        name = 'list_signon'
+    class SignOnDescription(SubCommand):
+        name = 'desc_signon'
         description = _(u'List of SignOn')
+        args = [
+            (('id',), dict(nargs=1, type=int, help="SignOn id")), 
+        ]
+    
+        def run(self, params, **options):
+            signon = SignOn.objects.get(id=params.id[0])
+            
+            print "*** Tokens ****"
+            for token in signon.rp_token_related.all():
+                print token.id, token.created_at , token.token
+
+    class IdTokenDescription(SubCommand):
+        name = 'desc_idtoken'
+        description = _(u'Description of the ID Token for a SignOn')
         args = [
             (('id',), dict(nargs=1, type=int, help="SignOn id")), 
         ]
@@ -131,3 +146,14 @@ class Command(GenericCommand):
                 print ex.message
                 print ex.jobj and ex.jobj.to_json()
                 print ex.args
+
+    class UserInfoGet(SubCommand):
+        name = 'get_userinfo'
+        description = _(u'Get UserInfo with access token for a SignOn')
+        args = [
+            (('id',), dict(nargs=1, type=int, help="SignOn id")), 
+        ]
+        def run(self, params, **options):
+            userinfo = UserInfoClient().call(
+                SignOn.objects.get(id=params.id[0])) 
+            print userinfo.to_json(indent=2)
