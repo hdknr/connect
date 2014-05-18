@@ -35,10 +35,11 @@ class ConfResource(SingletonResource):
 
         return ret
 
-
 class ConfClient(object):
     def call(self, server, **kwargs):
+        return self.get(ConfResource.url(server, **kwargs))
+
+    def get(self, uri):
         r = requests.get(
-            ConfResource.url(server, **kwargs),
-            headers={"Accept": 'application/json'})
+            uri, headers={"Accept": 'application/json'})
         return ProviderMeta.from_json(r.content)

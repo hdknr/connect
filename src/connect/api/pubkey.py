@@ -46,8 +46,9 @@ class AuthorityKeyResource(PublicKeyResource):
 
     def keyset(self, bundle, tenant=None, id=None, *args, **kwargs):
         jku = self.jku(bundle)
-        return [key.key_object 
-                for key in AuthorityKey.objects.filter(jku=jku)]
+        return [key.key_object.public_jwk
+                for key 
+                in AuthorityKey.objects.filter(jku=jku, active=True,)]
 
 class RelyingPartyKeyResource(PublicKeyResource):
 
@@ -56,8 +57,9 @@ class RelyingPartyKeyResource(PublicKeyResource):
 
     def keyset(self, bundle, tenant=None, id=None, *args, **kwargs):
         jku = self.jku(bundle)
-        return [key.key_object 
-                for key in RelyingPartyKey.objects.filter(jku=jku)]
+        return [key.key_object.public_jwk 
+                for key 
+                in RelyingPartyKey.objects.filter(jku=jku, active=True,)]
 
 
 class AuthorityKeyClient(object):

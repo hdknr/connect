@@ -88,6 +88,22 @@ class Command(GenericCommand):
                 keys=[Jwk.generate(kty=params.kty[0])])
             jwkset.save(authority, jku)
 
+    class AuthorityActivateKey(SubCommand):
+        name = 'activate_az_key'
+        description = _(u'Activate (or Deactivate) Authority Key')
+        args = [
+            (('id',), 
+             dict(nargs=1, type=int,
+                  help="Authority Key id")),
+            (('-off',), 
+             dict(action='store_false', default=True, dest='on',
+                  help="Activate or Deactivate")),
+        ]
+
+        def run(self, params, **options):
+            AuthorityKey.objects.filter(
+                id=params.id[0]).update(active=params.on)
+
     class AuthorityListKey(SubCommand):
         name = 'list_az_key'
         description = _(u'Create Authority Key')
