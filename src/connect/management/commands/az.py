@@ -81,8 +81,10 @@ class Command(GenericCommand):
 
         def run(self, params, **options):
             authority  = Authority.objects.get(id=params.id[0])
-            jku = AuthorityKeyResource.url(
-                authority.identifier, id=params.jkuid)
+            jku = authority.auth_metadata_object.jwks_uri or \
+                AuthorityKeyResource.url(
+                    authority.identifier, 
+                    tenant=authority.tenant, id=params.jkuid)
 
             jwkset = JwkSet(
                 keys=[Jwk.generate(kty=params.kty[0])])
