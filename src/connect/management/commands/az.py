@@ -104,13 +104,23 @@ class Command(GenericCommand):
                 print key.id, key.jku, key.kid, key.x5t
                 print key.key_object.to_json(indent=2)
                 
-    class AuthorityUpdateAuthMeta(SubCommand):
-        name = 'update_az_authmeta'
-        description = _(u'Update Authority AuthMetadata')
+    class AuthorityUpdateUri(SubCommand):
+        name = 'update_az_uris'
+        description = _(u'Update Authority Uris')
         args = [
             (('id',), 
              dict(nargs=1, type=int,
                   help="Authority id")),
+            (('host',), 
+             dict(nargs='?',
+                  help="hostname (localhost:8000)")),
+            (('scheme',), 
+             dict(nargs='?',
+                  help="scheme(default='https')")),
         ]
 
         def run(self, params, **options):
+            print params.id, params.host, params.scheme
+
+            authority = Authority.objects.get(id=params.id[0])
+            authority.update_uris()

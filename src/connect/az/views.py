@@ -24,3 +24,17 @@ def grant(request, tenant=None):
         request,
         'az/grant.html',
         dict(request=request, tenant=tenant))
+
+
+def tos(request, tenant=None):
+    return TemplateResponse(
+        request,
+        'az/tos.html',
+        dict(request=request, tenant=tenant))
+
+
+def policy(request, tenant=None):
+    return TemplateResponse(
+        request,
+        'az/policy.html',
+        dict(request=request, tenant=tenant))

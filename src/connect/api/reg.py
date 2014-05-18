@@ -1,5 +1,6 @@
 from tastypie.resources import Resource
 from tastypie.serializers import Serializer
+from connect.api import SingletonResource
 #from django.core.serializers.json import DjangoJSONEncoder
 #import json
 
@@ -27,7 +28,7 @@ class RegSerializer(Serializer):
         return "{}"
 
 
-class RegResource(Resource):
+class RegResource(SingletonResource):
 
     class Meta:
         allowed_methods = ['get']
