@@ -2,6 +2,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django.utils.importlib import import_module
+from django.utils.functional import curry
 
 from connect.messages.discovery import ProviderMeta
 from connect.messages.reg import ClientMeta, ClientReg
@@ -30,7 +32,25 @@ _EPOCH_TIME = re.compile('^(?P<name>.+)_epoch$')
 
 class BaseModel(models.Model):
     _serializer = {}
-    
+
+    def __init__(self, *args, **kwargs):
+        super(BaseModel, self).__init__(*args, **kwargs)
+        self.patch_helper(self.helper()) 
+        
+    _helper = None 
+    @classmethod
+    def helper(cls):
+        if cls._helper is None: 
+            mod = import_module(cls.__module__.replace('models','helpers'))
+            cls._helper = getattr(mod, cls.__name__, object)
+        return cls._helper
+
+    @classmethod
+    def patch_helper(cls, helper):
+        if helper and helper not in  cls.__bases__:
+            cls.__bases__ = cls.__bases__ + (helper,)
+        
+
     created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
     updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
@@ -48,7 +68,7 @@ class BaseModel(models.Model):
         _val = _name and getattr(self, _name.groupdict()['name'])
         if _val and isinstance(_val, datetime):
             return int(time.mktime(_val.astimezone(pytz.utc).timetuple()))
-
+       
         return self.__getattribute__(name)
     
     def __setattr__(self, name, value):
@@ -75,6 +95,8 @@ class AbstractKey(BaseModel):
     x5t = models.CharField(
         _(u'X.509 Thumprint'), max_length=100, 
         null=True, blank=True, default=None)
+
+    active = models.BooleanField(default=True)
 
     key = models.TextField(default='{}')
 

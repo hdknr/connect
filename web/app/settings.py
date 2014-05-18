@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 ################################################################
 DBENGINE = os.environ.get(
     'DBENGINE',
-    sys.argv[1] == 'runserver' and "sqlite3" or "mysql")
+    len(sys.argv) > 1 and sys.argv[1] == 'runserver' and "sqlite3" or "mysql")
 VENV = os.path.basename(os.environ.get('VIRTUAL_ENV', ''))
 DEFAULT_DBNAME = "connect_%s" % (VENV or 'db')
 if DBENGINE == "sqlite3":
@@ -110,7 +110,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 #    pass
 
 os.environ['JOSE_CONFIGURATION_CLASS'] = 'app.confs.JoseConf'
-
 INSTALLED_APPS += (
     'connect',
     'connect.az',
@@ -119,6 +118,9 @@ INSTALLED_APPS += (
     'tastypie',
     'issues',
     'todos',
+    #    'django.contrib.sites',
 )
 if 'test' not in sys.argv:
     INSTALLED_APPS += ('south', )
+
+#SITE_ID = 1

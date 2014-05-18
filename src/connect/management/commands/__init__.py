@@ -16,7 +16,9 @@ class SubCommand(object):
         self.parser = argparse.ArgumentParser(
             prog=self.name, add_help=False,
             description=self.description.__unicode__())
-        map(lambda a: self.parser.add_argument(*a[0], **a[1]), self.args)
+
+        for a, k in self.args:
+            self.parser.add_argument(*a, **k)
 
     def help(self):
         self.parser.print_help()

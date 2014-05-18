@@ -19,6 +19,6 @@ urlpatterns = patterns(
     url(r'^connect/az/', include('connect.az.urls')),
     url(r'^connect/rp/', include('connect.rp.urls')),
     url(r'issues/api/', include(IssueResource().urls)),
-    url(r'', include('connect.api.wellknowns')),
+    url(r'', include('connect.az.wellknowns')),
     url(r'', views.default, name="top"),
 )

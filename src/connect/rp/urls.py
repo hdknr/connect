@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, url, include
 import views
 
 _AUTH = r"(?:(?P<vender>.*)/)?auth/(?P<action>.+)/(?P<mode>.*)$"
@@ -8,6 +8,7 @@ _PREFERENCE = r"(?:(?P<vender>.*)/)?preference(?:/(?P<id>\d+))?(?:/(?P<command>[
 
 urlpatterns = patterns(
     '',
+    url("api/", include('connect.rp.api')),
     url("conf/userinfo/(?P<id>\d+)", views.userinfo, name='rp_userinfo'),
     url("conf/signon/(?P<id>\d+)", views.signon_detail, name='rp_signon_detail'),
     url("conf/az/(?P<id>\d+)", views.authority_detail, name='rp_authority_detail'),
