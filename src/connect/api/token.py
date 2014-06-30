@@ -1,45 +1,52 @@
 from tastypie.resources import Resource
 from tastypie.serializers import Serializer
-from connect.api import SingletonResource
-#from django.core.serializers.json import DjangoJSONEncoder
-#import json
+from tastypie.authentication import MultiAuthentication
 
+from connect.messages.token import TokenRes
+from connect.api import SingletonResource, ObjectSerializer
+from connect.api.auth.form import ClientFormAuth
+from connect.api.auth.baic import ClientSecretBasic
 
-class Token(object):
-    def __init__(self, initial=None):
-        self.__dict__['_data'] = {}
-        if hasattr(initial, 'items'):
-            self.__dict__['_data'] = initial
-
-    def __getattr__(self, name):
-        return self._data.get(name, None)
-
-    def __setattr__(self, name, value):
-        self.__dict__['_data'][name] = value
-
-    def to_dict(self):
-        return self._data
-
-
-class TokenSerializer(Serializer):
-    def to_json(self, data, options=None):
-        options = options or {}
-        print type(data), data
-        return "{}"
-
+import requests
 
 class TokenResource(SingletonResource):
 
     class Meta:
-        allowed_methods = ['get']
+        allowed_methods = ['post',]
         resource_name = 'token'
-        object_class = Token
-        serializer = TokenSerializer(formats=['json'])
+        object_class = TokenRes
+        always_return_data = True   # Important
+        authentication = MultiAuthentication(
+            ClientFormAuth(), ClientSecretBasic())
+        serializer = ObjectSerializer(formats=['json'])
 
-    def obj_get(self, bundle, tenant=None, *args, **kwargs):
-        print "token obj_get>>>>>", args, kwargs
-        return Token()
+    def post_detail(self, request, **kwargs):
+        print self._meta.authentication.party
+        obj = TokenRes(access_token="xxx.......")
+        bundle = self.build_bundle(obj=obj, request=request)
+        bundle = self.full_dehydrate(bundle)
+        bundle = self.alter_detail_data_to_serialize(request, bundle)
+        return self.create_response(request, bundle)
 
-    def obj_get_list(self, bundle, tenant=None, *args, **kwargs):
-        print "token obj_get_list>>>>> tenant = ", tenant, args, kwargs
-        return [Token()]
+
+class TokenByCodeClient(object):
+    def code(self, signon, **kwargs):
+        uri = signon.authority.auth_metadata_object.token_endpoint
+        form = dict(
+            grant_type="authorization_code",
+            code=signon.code,
+            client_id=signon.party.identifier, 
+            client_secret=signon.party.secret, 
+            redirect_uri=signon.request_object.redirect_uri,
+        )
+
+        return self.post(uri, form)
+
+    def post(self, uri, form):
+        r = requests.post(
+            uri, data=form,
+            headers={
+                "Accept": 'application/json',
+            })
+        return TokenRes.from_json(r.content)
+

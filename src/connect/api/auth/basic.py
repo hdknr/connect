@@ -10,19 +10,18 @@ from django.core.exceptions import ImproperlyConfigured
 from django.middleware.csrf import _sanitize_token, constant_time_compare
 from django.utils.translation import ugettext as _
 
-from tastypie.http import HttpUnauthorized
-from connect.api.auth import ConnectAuth
-
 from hashlib import sha1
+from tastypie.http import HttpUnauthorized
 
+from connect.api.auth import ConnectAuth
 from connect.az.models import RelyingParty
 from connect.api.auth import ConnectAuth
 
-class ClientBasicAuth(ConnectAuth):
+class ClientSecretBasic(ConnectAuth):
     """ Basic Authentication
     """
     def __init__(self, backend=None, realm='django-tastypie', **kwargs):
-        super(ClientBasicAuth, self).__init__(**kwargs)
+        super(ClientSecretBasic, self).__init__(**kwargs)
         self.realm = realm
 
     def _unauthorized(self):
@@ -45,17 +44,15 @@ class ClientBasicAuth(ConnectAuth):
         except:
             return self._unauthorized()
 
-        bits = user_pass.split(':', 1)
-
-        if len(bits) != 2:
-            return self._unauthorized()
-
         try: 
+            uid, pwd = user_pass.split(':')
             self.party = RelyingParty.objects.get(
-                identifier=bits[0],
-                secret=bits[1],
+                identifier=uid,
+                secret=pwd,
             )     
             return True
+        except ValueError:
+            return self._unauthorized()
         except RelyingParty.DoesNotExist:
             return False 
 

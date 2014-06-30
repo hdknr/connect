@@ -2,10 +2,9 @@ from tastypie.resources import Resource
 from tastypie.serializers import Serializer
 
 from . import SingletonResource, ObjectSerializer
-from .auth.bearer import BearerTokenAuth
+from .auth.bearer import OAuthBearer
 from connect.messages.userinfo import UserInfo
 import requests
-#from django.core.serializers.json import DjangoJSONEncoder
 
 
 class UserInfoResource(SingletonResource):
@@ -14,7 +13,7 @@ class UserInfoResource(SingletonResource):
         allowed_methods = ['get']
         resource_name = 'userinfo'
         object_class = UserInfo
-        authentication = BearerTokenAuth(scopes=['openid'])
+        authentication = OAuthBearer(scopes=['openid'])
         serializer = ObjectSerializer(formats=['json'])
 
     def obj_get(self, bundle, tenant=None, *args, **kwargs):
