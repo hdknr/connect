@@ -248,6 +248,10 @@ class AbstractSignOn(BaseModel):
     state = models.CharField(
         _('State'), max_length=200, db_index=True, unique=True)
 
+    code = models.CharField(
+        _('Code'), max_length=100, 
+        db_index=True, null=True, blank=True,)
+
     verified = models.BooleanField(default=False)
     request = models.TextField(default='{}')
     response = models.TextField(default='{}')
