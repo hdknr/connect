@@ -10,6 +10,7 @@ from jose.base import JoseException
 from optparse import make_option
 import traceback
 from connect.api.userinfo import UserInfoClient
+from connect.api.token import TokenByCodeClient
 
 
 class Command(GenericCommand):
@@ -157,3 +158,16 @@ class Command(GenericCommand):
             userinfo = UserInfoClient().call(
                 SignOn.objects.get(id=params.id[0])) 
             print userinfo.to_json(indent=2)
+
+
+    class TokenGet(SubCommand):
+        name = 'get_token'
+        description = _(u'Get Tokens with `code` for a SignOn')
+        args = [
+            (('id',), dict(nargs=1, type=int, help="SignOn id")), 
+        ]
+        def run(self, params, **options):
+            token = TokenByCodeClient().code(
+                SignOn.objects.get(id=params.id[0])) 
+
+            print token.to_json(indent=2)
