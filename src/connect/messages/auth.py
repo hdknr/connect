@@ -36,6 +36,23 @@ _auth_req_selfissued = dict(
     registration=None,
 )
 
+# Response Mode
+# 
+# OPTIONAL. 
+# Informs the Authorization Server of the mechanism to be used 
+# for returning Authorization Response parameters from the Authorization Endpoint. 
+# This use of this parameter is NOT RECOMMENDED with a value 
+# that specifies the same Response Mode 
+# as the default Response Mode for the Response Type used.
+
+_response_mode = [ 
+    # https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html
+    "query",        
+    "fragment",
+
+    # https://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html
+    "form_post",   
+]
 
 class AuthReq(BaseObject):
     ''' Connect Core 1.0
