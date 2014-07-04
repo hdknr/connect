@@ -4,8 +4,8 @@ from tastypie.authentication import MultiAuthentication
 
 from connect.messages.token import TokenRes
 from connect.api import SingletonResource, ObjectSerializer
-from connect.api.auth.form import ClientFormAuth
-from connect.api.auth.baic import ClientSecretBasic
+from connect.api.auth.form import ClientSecretPost
+from connect.api.auth.basic import ClientSecretBasic
 
 import requests
 
@@ -17,7 +17,7 @@ class TokenResource(SingletonResource):
         object_class = TokenRes
         always_return_data = True   # Important
         authentication = MultiAuthentication(
-            ClientFormAuth(), ClientSecretBasic())
+            ClientSecretPost(), ClientSecretBasic())
         serializer = ObjectSerializer(formats=['json'])
 
     def post_detail(self, request, **kwargs):

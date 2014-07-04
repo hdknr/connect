@@ -66,6 +66,9 @@ class ClientSecretPost(ConnectAuth):
 
 class ClientSecretJwt(ClientSecretPost):
     client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+    post_keys = ('client_id', 
+                 'client_assertion_type', 
+                 'client_assertion')
 
     ''' Clients that have received a `client_secret` value 
         from the Authorization Server create a JWT using an HMAC SHA algorithm, 
@@ -82,11 +85,9 @@ class ClientSecretJwt(ClientSecretPost):
     '''
 
     def get_assertion(self, request):
-        param = type('',(),
-                     dict((key, request.POST.get(key, None) 
-                     for key in 
-                     ('client_id', 
-                      'client_assertion_type', 'client_assertion'))
+        param = type('',(),dict(
+            (key, request.POST.get(key, None))
+            for key in self.post_keys))
 
         try:
             setattr(param, 'party',
@@ -97,7 +98,7 @@ class ClientSecretJwt(ClientSecretPost):
          
         return param, all([param.client_id, 
                     param.client_assertion_type == self.client_assertion_type,
-                    param.client_asserton, param.party ]):
+                    param.client_asserton, param.party ])
 
     def verify_assertion(self, param): 
         #: verify Jwt with Shared Jwk(kty='oct')
