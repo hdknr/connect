@@ -33,7 +33,6 @@ class AuthorityKey(AbstractKey):
         unique_together = (('jku', 'kid', 'x5t'), )
 
 
-
 class RelyingParty(AbstractRelyingParty):
 
     @classmethod

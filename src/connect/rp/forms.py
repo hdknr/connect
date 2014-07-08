@@ -22,7 +22,7 @@ class AuthReqForm(forms.Form):
             qset = RelyingParty.objects.filter(authority__vender=vender)
         else:
             qset = RelyingParty.objects.all()
-            
+
         self.base_fields["rp"].queryset = qset
         super(AuthReqForm, self).__init__(*args, **kwargs)
 
