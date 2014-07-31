@@ -5,6 +5,8 @@ admin.autodiscover()
 from issues.api import IssueResource
 from todos import views
 
+print IssueResource().urls
+
 urlpatterns = patterns(
     '',
     # Examples:
@@ -18,7 +20,7 @@ urlpatterns = patterns(
     url(r'^admin/', include(admin.site.urls)),
     url(r'^connect/az/', include('connect.az.urls')),
     url(r'^connect/rp/', include('connect.rp.urls')),
-    url(r'issues/api/', include(IssueResource().urls)),
+    url(r'^issues/api/', include(IssueResource().urls)),
     url(r'', include('connect.az.wellknowns')),
     url(r'', views.default, name="top"),
 )

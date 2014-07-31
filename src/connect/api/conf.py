@@ -26,7 +26,7 @@ class ConfResource(SingletonResource):
                 # TODO: , if authomaticall create provider.
                 pass
 
-            ret = authority.openid_configuraiion
+            ret = authority.openid_configuration
 
             ret.authorization_endpoint = urlparse.urljoin(
                 ret.issuer, reverse('az_req'))
