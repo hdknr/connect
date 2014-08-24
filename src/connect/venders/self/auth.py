@@ -17,6 +17,7 @@ from connect.rp.models import (
 from connect.rp.views import save_signon, bind, request_token
 
 from connect.messages.auth import AuthReq, AuthResCode, AuthRes
+from settings import create_authority, create_relyingparty 
 
 from jose.base import JoseException
 import traceback
@@ -25,6 +26,19 @@ SCOPES = ["profile", "email", ]
 PROMPT = ["none", "consent", "select_account",]
 
 def req_any(request, vender, action, mode):
+    # redirect_uri == client_id (7.2)
+    ruri = request.build_absolute_uri(
+        reverse('rp_auth', kwargs=dict(
+            vender='self', action='res', mode='implicit',
+        ))
+    )
+
+    # TODO: create the Authority(=SIOP) if not created yet.
+    authority = create_authority()
+
+    # TODO: create the RP for SIOP if not created yet.
+    rp = create_relyingparty(authority, ruri)
+
     form = AuthReqForm(
         vender=__package__,
         data=request.POST or None)
@@ -32,13 +46,6 @@ def req_any(request, vender, action, mode):
     if request.method == "POST" and form.is_valid():
         rp = form.cleaned_data['rp']
         conf = rp.authority.auth_metadata_object
-
-        # redirect_uri == client_id (7.2)
-        ruri = request.build_absolute_uri(
-            reverse('rp_auth', kwargs=dict(
-                vender='self', action='res', mode='implicit',
-            ))
-        )
 
         # AuthReq (7.3)
         scopes = ["openid", "profile", "email", "address", "phone"]
@@ -75,7 +82,7 @@ def req_any(request, vender, action, mode):
         'venders/%s/req_any.html' % vender, ctx)
 
 
-def res_code(request, vender, action, mode):
+def res_implicit(request, vender, action, mode):
     '''
     '''
     authres = AuthRes.from_url(request.get_full_path())
@@ -115,5 +122,4 @@ def res_code(request, vender, action, mode):
     )
 
     return TemplateResponse(
-        request, 'venders/google/res_error.html', ctx)
-
+        request, 'venders/self/res_error.html', ctx)

@@ -127,6 +127,9 @@ def create_authority(tenant=None, *args, **kwargs):
         identifier='https://self-issued.me',        # Connect 7.1
         vender=__package__,
     )
+    if not created:
+        return authority
+        
     if tenant:
         authority.tenant = tenant
 
@@ -157,3 +160,12 @@ def create_authority(tenant=None, *args, **kwargs):
 
     #: Authoriy public key can not be resolved.
     return authority
+
+
+def create_relyingparty(authority, redirect_uri):
+    rp, created = RelyingParty.objects.get_or_create(
+        short_name="SelfIssued",
+        identifier=redirect_uri,
+        authority=authority)
+    return rp
+
