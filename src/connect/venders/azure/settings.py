@@ -117,7 +117,6 @@ def edit(request, vender, id, command):
         try:
             reg = form.instance.reg_object
         except Exception, ex:
-            print ex
             pass
     else:
         form = RelyingPartyForm(instance=instance)

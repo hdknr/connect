@@ -15,8 +15,8 @@ from connect.rp.models import (
     SignOn
 )
 from connect.rp.views import save_signon, bind, request_token
-
 from connect.messages.auth import AuthReq, AuthResCode, AuthRes
+from connect.messages.id_token import IdToken
 from settings import create_authority, create_relyingparty 
 
 from jose.base import JoseException
@@ -24,6 +24,44 @@ import traceback
 
 SCOPES = ["profile", "email", ]
 PROMPT = ["none", "consent", "select_account",]
+
+
+def resolve_token(request, signon, vender):
+    ''' resolve ID Token from SIOP AuthRes
+    '''
+
+    try:
+        id_token = signon.get_id_token()
+    except JoseException, ex:
+        id_token = None
+
+    if id_token is None  or not id_token.verified:
+        #: TODO: raise Exception for each error.
+        signon.subject = id_token and id_token.sub or None
+        signon.save()
+        raise Exception("invalid id_token")
+
+    signon.subject = id_token.sub 
+    signon.verified = id_token.is_available(signon.party.identifier)
+    signon.save()
+    if not signon.verified:
+        raise Exception("invalid id_token")
+
+    conf = signon.party.authority.auth_metadata_object
+    access_token = signon.access_token 
+    userinfo = None
+    if conf and conf.userinfo_endpoint and access_token:
+        headers = {
+            "Authorization": "Bearer %s" % access_token, 
+            "content-type": "application/json",
+        }
+        res = requests.get(conf.userinfo_endpoint, headers=headers)
+        if res.status_code == 200:
+            signon.userinfo = res.content    
+            signon.save()
+
+    return id_token
+
 
 def req_any(request, vender, action, mode):
     # redirect_uri == client_id (7.2)
@@ -59,7 +97,8 @@ def req_any(request, vender, action, mode):
             request=None,               # Request Object
         )
 
-        signon = SignOn.create(request.user, rp, authreq)
+        signon = SignOn.create(
+            request.user, rp, authreq, request.session.session_key )
         request.session['state'] = signon.state
 
         if conf.authorization_endpoint.find('?') > 0:
@@ -90,18 +129,29 @@ def res_implicit(request, vender, action, mode):
     if not valid_state:
         raise Exception("Invalid State")
 
+    if not authres.id_token:
+        raise Exception("No ID Token")
+
     signon = None
     errors = None
     try:
         signon = SignOn.objects.get(state=authres.state)
+
+        # Save AuthRes
         signon.response_object = authres
+
+        # Save Id Token
+        id_token_string = signon.get_id_token_string() 
+        if id_token_string:
+            id_token = IdToken.parse_siop_token(id_token_string)
+            signon.verified = id_token.verified
+            signon.id_token_object = id_token
+            signon.subject = id_token.sub 
+
         signon.save()
 
         if authres.error:
             raise Exception("authres error")
-
-        id_token = request_token(
-            request, signon, vender)
 
         save_signon(request, signon)
         return bind(request, signon)
@@ -112,13 +162,12 @@ def res_implicit(request, vender, action, mode):
             signon.errors = errors
             signon.save()
     
-    
     ctx = dict(
-            request=request,
-            signon=signon,
-            authres=authres,
-            tokenres=signon.tokens_object,
-            errors=errors,
+        request=request,
+        signon=signon,
+        authres=authres,
+        tokenres=signon.tokens_object,
+        errors=errors,
     )
 
     return TemplateResponse(

@@ -73,7 +73,7 @@ class SignOn(AbstractSignOn):
         return _BE(hashlib.sha256(nonce + settings.SECRET_KEY).digest())
 
     @classmethod
-    def create(cls, user, party, authreq=None):
+    def create(cls, user, party, authreq, session_key=None):
         n = nonce('S')
         s = cls.state_from_nonce(n)
         if authreq:
@@ -86,6 +86,7 @@ class SignOn(AbstractSignOn):
         signon = cls(
             authority=party.authority,
             party=party,
+            session_key=session_key,
             nonce=n,
             state=s,
             user=user,

@@ -21,7 +21,6 @@ class TokenResource(SingletonResource):
         serializer = ObjectSerializer(formats=['json'])
 
     def post_detail(self, request, **kwargs):
-        print self._meta.authentication.party
         obj = TokenRes(access_token="xxx.......")
         bundle = self.build_bundle(obj=obj, request=request)
         bundle = self.full_dehydrate(bundle)

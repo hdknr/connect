@@ -31,7 +31,7 @@ class ConfResource(SingletonResource):
             ret.authorization_endpoint = urlparse.urljoin(
                 ret.issuer, reverse('az_req'))
         except:
-            print traceback.format_exc()
+            pass
 
         return ret
 

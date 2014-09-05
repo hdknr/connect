@@ -5,7 +5,6 @@ admin.autodiscover()
 from issues.api import IssueResource
 from todos import views
 
-print IssueResource().urls
 
 urlpatterns = patterns(
     '',

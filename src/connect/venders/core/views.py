@@ -14,8 +14,8 @@ from connect.rp.forms import AuthReqForm
 def req_any(request):
 
     form = AuthReqForm(data=request.POST or None)
-    if request.method == 'POST':
-        print request.POST
+    #if request.method == 'POST':
+    #    pass
 
     return TemplateResponse(
         request,

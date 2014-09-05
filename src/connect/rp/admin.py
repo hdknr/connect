@@ -7,7 +7,6 @@ for model in get_models(get_app(__name__.split('.')[-2:][0])):
 
     admin_class = globals().get(name, None)
     if admin_class is None:
-        print model._meta.object_name, tuple([f.name for f in model._meta.fields])
         params = dict(
             list_display=tuple([f.name for f in model._meta.fields]),)
         admin_class = type(

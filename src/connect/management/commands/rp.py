@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 from . import GenericCommand, SubCommand
+
 from connect.rp.models import SignOn, RelyingParty, Authority
 from connect.messages.token import TokenRes
 from connect.messages.id_token import IdToken
-from jose.base import JoseException
-from optparse import make_option
-import traceback
+from connect.messages.auth import AuthRes
 from connect.api.userinfo import UserInfoClient
 from connect.api.token import TokenByCodeClient
+
+
+from jose.base import JoseException
+
+from optparse import make_option
+import os
+import traceback
+import requests
 
 
 class Command(GenericCommand):
@@ -116,10 +124,45 @@ class Command(GenericCommand):
     
         def run(self, params, **options):
             signon = SignOn.objects.get(id=params.id[0])
-            
+            id_token_string = signon.get_id_token_string() 
+
+            # TODO: SIOP routeine should be moved somewhere else
+            if signon.authority.vender == "connect.venders.self":
+                print "SIOP"
+                id_token = IdToken.parse_siop_token(id_token_string)
+                signon.verified = id_token.verified
+                signon.id_token_object = id_token
+                signon.save()
+                print id_token.to_json(indent=2)
+
             print "*** Tokens ****"
             for token in signon.rp_token_related.all():
                 print token.id, token.created_at , token.token
+
+
+    class SignOnAuthRes(SubCommand):
+        name = 'authres_signon'
+        description = _(u'AuthRes to SignOn')
+        args = [
+            (('id',), dict(nargs=1, type=int, help="SignOn id")), 
+            (('uri',), dict(nargs=1, type=str, help="AuthRes URI(GET)")), 
+        ]
+    
+        def run(self, params, **options):
+            signon = SignOn.objects.get(id=params.id[0])
+            session_key = signon.session_key 
+            if session_key is None:
+                print "Session Key is not recorded."
+                return
+
+            if os.path.isfile(params.uri[0]):
+                uri = open(params.uri[0]).read().rstrip('\n\r') 
+            else:
+                uri = params.id[0] 
+
+            res = requests.get(uri) 
+            print res.status_code
+
 
     class IdTokenDescription(SubCommand):
         name = 'desc_idtoken'
@@ -138,7 +181,6 @@ class Command(GenericCommand):
             print "Token Header:", id_token_header and id_token_header.to_json(indent=2)
             print "Key :", jwk and jwk.to_json(indent=2) 
              
-            
             try:
                 so = SignOn.objects.get(id=params.id[0])
                 print so.id_token_object.to_json(indent=2)
@@ -171,3 +213,4 @@ class Command(GenericCommand):
                 SignOn.objects.get(id=params.id[0])) 
 
             print token.to_json(indent=2)
+

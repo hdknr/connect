@@ -12,6 +12,7 @@ from connect.messages.token import TokenResCode, TokenRes
 from connect.messages.id_token import IdToken
 from connect.messages.userinfo import UserInfo
 from jose.jwk import JwkSet, Jwk
+from jose.crypto import KeyOwner as JoseKeyOwner
 import requests
 import traceback
 import re
@@ -113,9 +114,10 @@ class AbstractKey(BaseModel):
             self.x5t or '')  
 
 
-class KeyOwner(BaseModel):
+class KeyOwner(BaseModel, JoseKeyOwner):
 
     def save_object(self, obj, uri, *args, **kwargs):
+        ''' will be DROPPED '''
         for jwk in obj.keys:
             key, created = self.keys.get_or_create(
                 owner=self, jku=uri, kid=jwk.kid, x5t=jwk.x5t)
@@ -123,6 +125,7 @@ class KeyOwner(BaseModel):
             key.save()
 
     def load_object(self, obj_class, uri, kid=None, x5t=None, *args, **kwargs):
+        ''' will be DROPPED '''
         try:
             q = dict([(k, v) for k, v in dict(uri=uri, kid=kid, x5t=x5t).items() if v ])
             keys = [k.key_object for k in self.keys.filter(**q)]
@@ -130,6 +133,12 @@ class KeyOwner(BaseModel):
             return ret
         except:
             return None
+
+    def get_key(self, crypto):
+        q = dict([(k, v) for k, v in dict(uri=crypto.jku, kid=crypto.kid, x5t=crypto.x5t).items() if v ])
+        keys = [k.key_object for k in self.keys.filter(**q)]
+        ret = JwkSet(keys=keys)
+        return ret
 
     class Meta:
         abstract = True
@@ -242,6 +251,11 @@ class AbstractSignOn(BaseModel):
         'Identity', related_name=_RELATION,
         null=True, blank=True, default=None)
 
+    session_key = models.CharField(
+        _('Session Key'), 
+        max_length=200, db_index=True, 
+        null=True, blank=True, default=None)
+
     nonce = models.CharField(
         _('Nonce'), max_length=200, db_index=True, unique=True)
 
@@ -280,17 +294,30 @@ class AbstractSignOn(BaseModel):
         token_response = self.tokens_object
         return token_response and token_response.access_token
 
-    def get_id_token(self):
+    def get_id_token_string(self):
         token_response = self.tokens_object
-        if token_response:
-            id_token = IdToken.parse(
-                token_response.id_token,
-                sender=self.authority,
-                recipient=self.party)
-            self.id_token_object = id_token 
-            self.save()
-            return id_token     # has "verified" fields
-        return None
+
+        if token_response and token_response.id_token:
+            return token_response.id_token
+
+        #: Implicit Flow
+        res = self.response_object
+        return res and res.id_token or None
+ 
+    def get_id_token(self):
+        id_token_string = self.get_id_token_string()
+
+        if not id_token_string:
+            return None
+
+        # IdToken object
+        id_token = IdToken.parse(
+            id_token_string,
+            sender=self.authority,
+            recipient=self.party)
+        self.id_token_object = id_token 
+        self.save()
+        return self.id_token_object     # has "verified" fields
 
     def bind_identity(self, user):
         if self.user and self.user != user:

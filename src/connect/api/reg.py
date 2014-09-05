@@ -24,7 +24,6 @@ class Reg(object):
 class RegSerializer(Serializer):
     def to_json(self, data, options=None):
         options = options or {}
-        print type(data), data
         return "{}"
 
 

@@ -109,11 +109,19 @@ def default(request):
              form=AuthReqForm()))
 
 
+
 def auth(request, vender, action, mode, *args, **kwargs):
     mod = import_module(
         "connect.venders.%s.auth" % (vender.split('.')[-1] or "core"))
     func = "%s_%s" % (action, mode or "any")
     return getattr(mod, func)(request, vender, action, mode, *args, **kwargs)
+
+#def auth_view(request, vender, action, mode, *args, **kwargs):
+#    mod = import_module(
+#        "connect.venders.%s.auth" % (vender.split('.')[-1] or "core"))
+#
+#    return getattr(mod, "AuthView").as_view()(
+#        request, vender, action, mode, *args, **kwargs)
 
 
 def settings(request, 
@@ -153,11 +161,9 @@ def bind(request, signon=None):
 
     #: TODO: Appcaition MUST be able to specify forms.
     if identities.count() == 0:
-        print ">>> sign up"
         form = SignUpForm(signon=signon)
-        print form.as_table()
+
     else:
-        print ">>> selection (NO!)"
         form = SelectForm(signon=signon)
 
     return TemplateResponse(

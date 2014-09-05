@@ -13,9 +13,8 @@ import os
 import sys
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 ################################################################
-DBENGINE = os.environ.get(
-    'DBENGINE',
-    len(sys.argv) > 1 and sys.argv[1] == 'runserver' and "sqlite3" or "mysql")
+DEFAULT_DBENGINE = "sqlite3"
+DBENGINE = os.environ.get('DBENGINE', DEFAULT_DBENGINE)
 VENV = os.path.basename(os.environ.get('VIRTUAL_ENV', ''))
 DEFAULT_DBNAME = "connect_%s" % (VENV or 'db')
 if DBENGINE == "sqlite3":
@@ -106,7 +105,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 #try:
 #    from app.logs import *
 #except Exception,ex:
-#    print "@@@",ex
 #    pass
 
 os.environ['JOSE_CONFIGURATION_CLASS'] = 'app.confs.JoseConf'
