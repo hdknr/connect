@@ -1,6 +1,10 @@
-*.pyc
 *.egg-info
-logs
+*.pyc
 *.sqlite3
 .*.swp
+.DS_Store
+.ropeproject
+build
+dist
+logs
 migrations

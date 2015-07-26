@@ -1,1 +1,0 @@
--e git+ssh://git@github.com/hdknr/jose.git#egg=jose
