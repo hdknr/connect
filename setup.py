@@ -7,7 +7,6 @@ USER = "hdknr"
 SITE = 'github.com'
 PROJECT = NAME
 URL = 'https://{0}/{1}/{2}'.format(SITE, USER, PROJECT)
-DEPS = ['jose', ]
 
 
 def install():
