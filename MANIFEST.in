@@ -1,2 +1,4 @@
-include setup.py README.rst LICENSE.rst MANIFEST.in
+include setup.py 
+include *.rst
 global-exclude *~
+recursive-include requirements *
