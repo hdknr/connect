@@ -1,0 +1,73 @@
+{% extends "base.html" %} 
+
+{% block title %}
+Google+ Relying Party 
+{% endblock %}
+
+{% block main %}
+<h2>Guideline</h2>
+<ul>
+ <li>Self Issued OP
+    <a target="_outside" 
+    href="https://openid.net/specs/openid-connect-core-1_0.html#SelfIssued">OpenID Foundation Self-Issued OP
+    </a>
+ </li>
+
+
+<h2>Relying Party Edit</h2>
+<div>
+
+<form method="post" action={{ action_url }} > {% csrf_token %}
+<div>
+  Idenfider = {{ form.instance.reg_object.client_id }} 
+
+<fieldset>
+
+    <div class="form-group input_id_shortname">
+    {{ form.short_name.label }}
+    {{ form.short_name}}
+    </div>
+
+    <div class="form-group input_id_identifier">
+    {{ form.identifier.label }}
+    {{ form.identifier}}
+    </div>
+
+    {% if form.client_id %}
+    <div class="form-group input_id_client_id">
+    {{ form.client_id.label }}
+    {{ form.client_id}}
+    </div>
+    {% endif %}
+
+    {% if form.client_secret %}
+    <div class="form-group input_id_client_secret">
+    {{ form.client_secret.label }}
+    {{ form.client_secret}}
+    </div>
+    {% endif %}
+    
+    {% if form.reg %}
+    <div class="form-group input_id_reg">
+    {{ form.reg.label }}
+    {{ form.reg}}
+    </div>
+    {% endif %}
+    
+    <div class="form-actions">
+          <button class="btn btn-primary btn-lg pull-right" type="submit" name="save" value="save">Save</button>
+          {% if form.instance.id %}
+            <a  class="btn btn-primary btn-lg pull-right" href="{% url 'rp_settings' vender=vender id=form.instance.id %}">Cancel</a> 
+          {% else %}
+            <a  class="btn btn-primary btn-lg pull-right" href="{% url 'rp_settings' vender=vender  %}">Cancel</a> 
+          {% endif %}
+    </div>
+
+</fieldset>
+
+</div>
+
+</form>
+</div>
+{% endblock %}
+

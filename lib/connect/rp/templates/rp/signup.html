@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block main %}
+<form method="post" action="{{form.url}}">{% csrf_token %}
+    <fieldset>
+    <legend>Sign Up by OpenID Connect</legend>
+
+    <div class="form-group input_id_username">
+    {{ form.username.label }}
+    {{ form.username }}
+    </div>
+
+    <div class="form-group input_id_password">
+    {{ form.password.label }}
+    {{ form.password }}
+    </div>
+
+    <div class="form-group input_id_password">
+    {{ form.email.label }}
+    {{ form.email }}
+    </div>
+    <div class="form-actions">
+        <input class="btn btn-primary btn-lg pull-right" type="submit" value="Sign Up">
+    </div>
+    </fieldset>
+</form>
+{% endblock %}

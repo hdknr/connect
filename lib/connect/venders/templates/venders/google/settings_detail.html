@@ -1,0 +1,20 @@
+{% extends "base.html" %} 
+
+{% block title %}
+{{ party }}
+{% endblock %}
+
+
+
+{% block main %}
+
+<h2>Credentials</h2>
+
+{{ party.reg_object.to_json }}
+
+<div>
+<a class="btn btn-default" href="{% url 'rp_settings' vender=vender id=party.id command='edit' %}">edit</a>
+<a class="btn btn-default" href="{% url 'rp_settings' vender=vender  %}">parties</a>
+</div>
+
+{% endblock %}

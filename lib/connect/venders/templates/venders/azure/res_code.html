@@ -1,0 +1,28 @@
+<h1> Azure Authorization & Token Response :Code</h1>
+
+<h3>Auth Requet</h3>
+<ul> <li>{{ signon.request }} </li> </ul>
+
+<h3>Auth Response</h3>
+<ul> <li>{{ signon.response }} </li></ul>
+
+<h3>Token Response</h3>
+<ul><li>{{ data }} </li></ul>
+
+<h3>Token Header(Access Token)</h3>
+<ul><li>{{ header }} </li></ul>
+
+<h3>Web Token(Access Token)</h3>
+<ul><li>{{ token }} </li></ul>
+
+<h3>ID Token Token Header</h3>
+<ul><li>{{ id_token_header }} </li></ul>
+
+<h3>IT Token </h3>
+<ul><li>{{ id_token_token }} </li></ul>
+
+<hr/>
+<form method="post" action="{{ bind.url }}">{% csrf_token %}
+{{ bind }}
+<input type="submit" name="submit" value="Bind Identity" />
+</form>

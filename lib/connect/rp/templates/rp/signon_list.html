@@ -1,0 +1,6 @@
+{% for signon in signon_list %}
+<ol>
+  <li><a href="{% url 'rp_signon_detail' id=signon.id %}">{{ signon.verified}} {{ signon.subject }} </a></li>
+</ol>
+
+{% endfor %}
