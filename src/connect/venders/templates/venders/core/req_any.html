@@ -1,8 +1,0 @@
-<h1>Standard Connect Authoruzation Request</h1>
-
-<div>
-<form method="post" action="{% url 'rp_auth' action='req' vender=None mode='any' %}"> {% csrf_token %}
-{{ form }}
-    <div ><input type="submit" name="submit-server" value="OpenID"/></div>
-</form>
-</div>

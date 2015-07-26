@@ -1,8 +1,0 @@
-<h1>Self Issued OP Login</h1>
-
-<div>
-<form method="post" action="{% url 'rp_auth' action='req' vender=vender mode='any' %}"> {% csrf_token %}
-{{ form }}
-    <div ><input type="submit" name="submit-server" value="Self Issued"/></div>
-</form>
-</div>

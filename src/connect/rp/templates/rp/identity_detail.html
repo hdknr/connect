@@ -1,9 +1,0 @@
-{{ identity }}
-
-{% if signon_list %}
-<ul>
-  {% for signon in signon_list %}
-    <li><a href="{% url 'rp_signon_detail' id=signon.id  %}">{{signon.id}}</a></li>
-  {% endfor %}
-</ul>
-{% endif %}

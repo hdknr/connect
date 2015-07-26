@@ -1,8 +1,0 @@
-<h1>Azure Authoruzation Request</h1>
-
-<div>
-<form method="post" action="{% url 'rp_auth' action='req' vender='azure' mode='any' %}"> {% csrf_token %}
-{{ form }}
-    <div ><input type="submit" name="submit-server" value="Azure"/></div>
-</form>
-</div>
