@@ -23,15 +23,14 @@ class SingletonResource(Resource):
     def dispatch(self, request_type, request, **kwargs):
         ''' tastypie Resource#dipatch
         '''
-        
+
         # provide requesting context to the authentication object
-        self._meta.authentication.context = self.get_context(  
+        self._meta.authentication.context = self.get_context(
             request_type, request, **kwargs)
 
         # tastypie implementation
         return super(SingletonResource, self).dispatch(
             request_type, request, **kwargs)
-            
 
     @classmethod
     def url_name(cls):

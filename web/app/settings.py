@@ -102,11 +102,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 ########################################################################
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-#try:
-#    from app.logs import *
-#except Exception,ex:
-#    pass
-
 os.environ['JOSE_CONFIGURATION_CLASS'] = 'app.confs.JoseConf'
 INSTALLED_APPS += (
     'connect',
@@ -118,7 +113,3 @@ INSTALLED_APPS += (
     'todos',
     #    'django.contrib.sites',
 )
-if 'test' not in sys.argv:
-    INSTALLED_APPS += ('south', )
-
-#SITE_ID = 1

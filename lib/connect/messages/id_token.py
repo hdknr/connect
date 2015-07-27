@@ -18,7 +18,7 @@ class SiopSender(KeyOwner):
     def __init__(self, token):
         self.id_token = IdToken.from_b64u(token.split('.')[1])
         self.jwk = Jwk.from_json(self.id_token.sub_jwk)
-        
+
     def get_key(self, crypto):
         return self.jwk
 
@@ -34,8 +34,8 @@ class IdToken(Jwt):
 
     @classmethod
     def parse_siop_token(cls, token):
-        # TODO: parse JWS Payload to extract sub_jwk 
-        #       create wrapper 
+        # TODO: parse JWS Payload to extract sub_jwk
+        #       create wrapper
         sender = SiopSender(token)
         return cls.parse(token, sender, None)
 

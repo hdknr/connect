@@ -1,56 +1,51 @@
 # -*- coding: utf-8 -*-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from connect.models import (
-    AbstractKey,
-    AbstractAuthority,
-    AbstractRelyingParty,
-    AbstractPreference,
-    AbstractIdentity,
-    AbstractSignOn,
-    AbstractScope,
-    AbstractToken,
-)
+from connect import models as abstracts
 
 
-class Authority(AbstractAuthority):
+class Authority(abstracts.Authority):
 
     class Meta:
         unique_together = (('identifier', 'tenant'), )
 
-class AuthorityKey(AbstractKey):
+
+class AuthorityKey(abstracts.Key):
     owner = models.ForeignKey(Authority, related_name="keys")
 
     class Meta:
         unique_together = (('jku', 'kid', 'x5t'), )
 
 
-class RelyingParty(AbstractRelyingParty):
+class RelyingParty(abstracts.RelyingParty):
     pass
 
 
-class RelyingPartyKey(AbstractKey):
+class RelyingPartyKey(abstracts.Key):
     owner = models.ForeignKey(RelyingParty, related_name="keys")
+
     class Meta:
         unique_together = (('jku', 'kid', 'x5t'), )
 
 
-class Preference(AbstractPreference):
+class Preference(abstracts.Preference):
 
     class Meta:
         verbose_name = _(u'Relying Paryt Preference')
         verbose_name_plural = _(u'Relying Paryt Preferences')
 
 
-class Identity(AbstractIdentity):
+class Identity(abstracts.Identity):
     pass
 
-class SignOn(AbstractSignOn):
+
+class SignOn(abstracts.SignOn):
     pass
 
-class Scope(AbstractScope):
+
+class Scope(abstracts.Scope):
     pass
 
-class Token(AbstractToken):
-    pass
 
+class Token(abstracts.Token):
+    pass

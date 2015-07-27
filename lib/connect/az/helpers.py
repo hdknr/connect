@@ -37,13 +37,13 @@ class Authority(object):
 
     def default_authorization_endpoint(self):
         return urlparse.urljoin(
-            self.identifier, 
+            self.identifier,
             reverse('az_req', kwargs=dict(tenant=self.tenant)))
 
     def default_token_endpoint(self):
         return TokenResource.url(
             self.identifier, tenant=self.tenant)
-            
+
     def default_userinfo_endpoint(self):
         return UserInfoResource.url(
             self.identifier, tenant=self.tenant)
@@ -58,7 +58,7 @@ class Authority(object):
 
     def default_tos_uri(self, jkuid=None):
         return urlparse.urljoin(
-            self.identifier, 
+            self.identifier,
             reverse('az_tos', kwargs=dict(tenant=self.tenant)))
 
     def default_policy_uri(self, jkuid=None):

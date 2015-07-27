@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.conf.urls import patterns, url, include
-from connect.api import conf, finger
+from django.conf.urls import url, include
+# from connect.api import conf, finger
 
 _pat = r'(?:(?P<tenant>.*)/)?.well-known/'
-urlpatterns = patterns(
-    '',
-    url(_pat, include(conf.ConfResource().urls)),
-    url(_pat, include(finger.FingerResource().urls)),
-)
+urlpatterns = [
+    url(_pat, include('connect.rest.conf')),
+    # url(_pat, include(finger.FingerResource().urls)),
+]

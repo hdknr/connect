@@ -2,19 +2,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-from django.utils.importlib import import_module
-from django.utils.functional import curry
 
-from connect.messages.discovery import ProviderMeta
-from connect.messages.reg import ClientMeta, ClientReg
-from connect.messages.auth import AuthReq, AuthRes
-from connect.messages.token import TokenResCode, TokenRes
-from connect.messages.id_token import IdToken
-from connect.messages.userinfo import UserInfo
+from connect import messages
 from jose.jwk import JwkSet, Jwk
 from jose.crypto import KeyOwner as JoseKeyOwner
 import requests
-import traceback
 import re
 from datetime import datetime
 import pytz
@@ -31,77 +23,73 @@ _JSON_FIELD = re.compile('^(?P<name>.+)_object$')
 _EPOCH_TIME = re.compile('^(?P<name>.+)_epoch$')
 
 
+class JsonField(models.TextField):
+    def __init__(
+        self, serializer=messages.BaseObject,
+        defualt='{}', *args, **kwargs
+    ):
+        super(JsonField, self).__init__(*args, **kwargs)
+        self.serializer = serializer
+
+    def get_internal_type(self):
+        return 'TextField'
+
+
 class BaseModel(models.Model):
-    _serializer = {}
+    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
+    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
+
+    class Meta:
+        abstract = True
 
     def __init__(self, *args, **kwargs):
         super(BaseModel, self).__init__(*args, **kwargs)
-        self.patch_helper(self.helper()) 
-        
-    _helper = None 
-    @classmethod
-    def helper(cls):
-        if cls._helper is None: 
-            mod = import_module(cls.__module__.replace('models','helpers'))
-            cls._helper = getattr(mod, cls.__name__, object)
-        return cls._helper
-
-    @classmethod
-    def patch_helper(cls, helper):
-        if helper and helper not in  cls.__bases__:
-            cls.__bases__ = cls.__bases__ + (helper,)
-        
-
-    created_at = models.DateTimeField(_(u'Created At'), auto_now_add=True, )
-    updated_at = models.DateTimeField(_(u'Updated At'), auto_now=True, )
 
     def find_serializer_name(self, name):
         _name = _JSON_FIELD.search(name)
         return _name and _name.groupdict()['name'] or None
 
-    def __getattr__(self, name):
-        _name = self.find_serializer_name(name)
-        if _name:
-            val = getattr(self, _name)
-            return val and self._serializer[_name].from_json(val) or None
+    def find_jsonfield(self, name):
+        actual_name = self.find_serializer_name(name)
+        return actual_name and self._meta.get_field(actual_name)
 
-        _name = _EPOCH_TIME.search(name) 
+    def __getattr__(self, name):
+        field = self.find_jsonfield(name)
+        if field:
+            val = getattr(self, field.name)
+            return val and field.serializer.from_json(val) or None
+
+        _name = _EPOCH_TIME.search(name)
         _val = _name and getattr(self, _name.groupdict()['name'])
         if _val and isinstance(_val, datetime):
             return int(time.mktime(_val.astimezone(pytz.utc).timetuple()))
-       
+
         return self.__getattribute__(name)
-    
+
     def __setattr__(self, name, value):
-        _name = self.find_serializer_name(name)
-        if _name:
+        field = self.find_jsonfield(name)
+        if field:
             if value:
-                setattr(self, _name, value.to_json(indent=2))
+                setattr(self, field.name, value.to_json(indent=2))
             else:
-                setattr(self, _name, None) 
+                setattr(self, field.name, None)
         else:
-            super(BaseModel, self).__setattr__(name, value) 
-
-    class Meta:
-        abstract = True
+            super(BaseModel, self).__setattr__(name, value)
 
 
-class AbstractKey(BaseModel):
+class Key(BaseModel):
     jku = models.CharField(
         _(u'Jku'), max_length=200,
         null=True, blank=True, default=None)
     kid = models.CharField(
-        _(u'Key ID'), max_length=100, 
+        _(u'Key ID'), max_length=100,
         null=True, blank=True, default=None)
     x5t = models.CharField(
-        _(u'X.509 Thumprint'), max_length=100, 
+        _(u'X.509 Thumprint'), max_length=100,
         null=True, blank=True, default=None)
 
     active = models.BooleanField(default=True)
-
-    key = models.TextField(default='{}')
-
-    _serializer = dict(key=Jwk)
+    key = JsonField(serializer=Jwk)
 
     class Meta:
         abstract = True
@@ -111,31 +99,18 @@ class AbstractKey(BaseModel):
             self.owner.__unicode__(),
             self.jku or '',
             self.kid or '',
-            self.x5t or '')  
+            self.x5t or '')
 
 
 class KeyOwner(BaseModel, JoseKeyOwner):
 
-    def save_object(self, obj, uri, *args, **kwargs):
-        ''' will be DROPPED '''
-        for jwk in obj.keys:
-            key, created = self.keys.get_or_create(
-                owner=self, jku=uri, kid=jwk.kid, x5t=jwk.x5t)
-            key.key_object = jwk
-            key.save()
-
-    def load_object(self, obj_class, uri, kid=None, x5t=None, *args, **kwargs):
-        ''' will be DROPPED '''
-        try:
-            q = dict([(k, v) for k, v in dict(uri=uri, kid=kid, x5t=x5t).items() if v ])
-            keys = [k.key_object for k in self.keys.filter(**q)]
-            ret = JwkSet(keys=keys)
-            return ret
-        except:
-            return None
-
     def get_key(self, crypto):
-        q = dict([(k, v) for k, v in dict(uri=crypto.jku, kid=crypto.kid, x5t=crypto.x5t).items() if v ])
+        ''' crypto: Jws, Jwe instance '''
+        q = dict(
+            [(k, v) for
+             k, v in dict(
+                uri=crypto.jku, kid=crypto.kid, x5t=crypto.x5t).items() if v])
+
         keys = [k.key_object for k in self.keys.filter(**q)]
         ret = JwkSet(keys=keys)
         return ret
@@ -144,16 +119,14 @@ class KeyOwner(BaseModel, JoseKeyOwner):
         abstract = True
 
 
-class AbstractAuthority(KeyOwner):
+class Authority(KeyOwner):
     tenant = models.CharField(
         _(u'Tenant'), default=None,
-       max_length=50, blank=True, null=True, db_index=True,)
+        max_length=50, blank=True, null=True, db_index=True,)
 
-    short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
+    short_name = models.CharField(_(u'Name'), max_length=50)
     identifier = models.CharField(_(u'Identifier'), **_IDENTIFIER)
-    auth_metadata = models.TextField(default='{}')      #: For OpenID Connect
-
-    _serializer = dict(auth_metadata=ProviderMeta)
+    auth_metadata = JsonField(serializer=messages.ProviderMeta)
 
     def __unicode__(self):
         return self.short_name
@@ -164,55 +137,55 @@ class AbstractAuthority(KeyOwner):
     @classmethod
     def get_selfissued(cls):
         authority, created = cls.objects.get_or_create(
-            identifier=ProviderMeta.selfissued_issuer)
+            identifier=messages.ProviderMeta.selfissued_issuer)
         return authority
 
     def update_key(self):
         # TODO: SSL ann verify certificate.
-        jku = self.auth_metadata_object.jwks_uri  
+        jku = self.auth_metadata_object.jwks_uri
         if jku:
             res = requests.get(jku)
             jwkset = JwkSet.from_json(res.content)
             self.save_object(jwkset, jku)
 
 
-class AbstractRelyingParty(KeyOwner):
-    short_name = models.CharField(_(u'Name'), max_length=50)  #, unique=True,db_index=True)
+class RelyingParty(KeyOwner):
+    short_name = models.CharField(_(u'Name'), max_length=50)
     identifier = models.CharField(
         _(u'Identifier'), max_length=250, db_index=True)
     secret = models.CharField(
         _(u'Secret'), max_length=100, default=None, null=True, blank=True,)
 
     authority = models.ForeignKey('Authority', related_name=_RELATION)
-    auth_metadata = models.TextField(default='{}')
-    reg = models.TextField(_(u'Client Registration'), default='{}')
-    auth_settings = models.TextField(_(u'Authentication Settings'), default='{}')
 
-    _serializer = dict(auth_metadata=ClientMeta, reg=ClientReg)
+    auth_metadata = JsonField(serializer=messages.ClientMeta)
+    reg = JsonField(serializer=messages.ClientMeta)
+
+    auth_settings = models.TextField(
+        _(u'Authentication Settings'), default='{}')
+
+    class Meta:
+        abstract = True
 
     def __unicode__(self):
         return self.authority.__unicode__() + " " + self.short_name
 
-    class Meta:
-        abstract = True
 
-
-class AbstractPreference(models.Model):
+class Preference(models.Model):
     ''' Authentication Preference managed by per User'''
     party = models.ForeignKey('RelyingParty', related_name=_RELATION)
-    user = models.ForeignKey(User, related_name=_RELATION)    
-    preferences =  models.TextField(default='')
+    user = models.ForeignKey(User, related_name=_RELATION)
+    preferences = models.TextField(default='')
 
     class Meta:
         abstract = True
 
 
-class AbstractIdentity(BaseModel):
+class Identity(BaseModel):
     authority = models.ForeignKey('Authority', related_name=_RELATION)
     party = models.ForeignKey('RelyingParty', related_name=_RELATION)
 
-    subject = models.CharField(
-        _(u'Subject'), max_length=200)
+    subject = models.CharField(_(u'Subject'), max_length=200)
 
     user = models.ForeignKey(User, related_name=_RELATION)
 
@@ -220,10 +193,8 @@ class AbstractIdentity(BaseModel):
         'SignOn', related_name=_RELATION,
         null=True, blank=True, default=None, on_delete=models.SET_NULL)
 
-    id_token = models.TextField(default='{}')
-    userinfo = models.TextField(default='{}')
-
-    _serializer = dict(id_token=IdToken, userinfo=UserInfo)
+    id_token = JsonField(serializer=messages.IdToken)
+    userinfo = JsonField(serializer=messages.UserInfo)
 
     class Meta:
         abstract = True
@@ -235,7 +206,7 @@ class AbstractIdentity(BaseModel):
         )
 
 
-class AbstractSignOn(BaseModel):
+class SignOn(BaseModel):
     authority = models.ForeignKey('Authority', related_name=_RELATION)
     party = models.ForeignKey('RelyingParty', related_name=_RELATION)
 
@@ -252,8 +223,8 @@ class AbstractSignOn(BaseModel):
         null=True, blank=True, default=None)
 
     session_key = models.CharField(
-        _('Session Key'), 
-        max_length=200, db_index=True, 
+        _('Session Key'),
+        max_length=200, db_index=True,
         null=True, blank=True, default=None)
 
     nonce = models.CharField(
@@ -263,21 +234,21 @@ class AbstractSignOn(BaseModel):
         _('State'), max_length=200, db_index=True, unique=True)
 
     code = models.CharField(
-        _('Code'), max_length=100, 
+        _('Code'), max_length=100,
         db_index=True, null=True, blank=True,)
 
     verified = models.BooleanField(default=False)
-    request = models.TextField(default='{}')
-    response = models.TextField(default='{}')
-    tokens = models.TextField(default='{}')
-    id_token = models.TextField(default='{}')
-    userinfo = models.TextField(default='{}')
+
+    request = JsonField(serializer=messages.AuthReq)
+    response = JsonField(serializer=messages.AuthRes)
+    tokens = JsonField(serializer=messages.TokenRes)
+    id_token = JsonField(serializer=messages.IdToken)
+    userinfo = JsonField(serializer=messages.UserInfo)
+
     errors = models.TextField(default='{}')
 
-    _serializer = dict(
-        request=AuthReq, response=AuthRes, tokens=TokenRes,
-        id_token=IdToken, userinfo=UserInfo)
-
+    class Meta:
+        abstract = True
 
     def __unicode__(self):
         return "%s(%s)" % (
@@ -303,7 +274,7 @@ class AbstractSignOn(BaseModel):
         #: Implicit Flow
         res = self.response_object
         return res and res.id_token or None
- 
+
     def get_id_token(self):
         id_token_string = self.get_id_token_string()
 
@@ -311,11 +282,12 @@ class AbstractSignOn(BaseModel):
             return None
 
         # IdToken object
-        id_token = IdToken.parse(
+        id_token = messages.IdToken.parse(
             id_token_string,
             sender=self.authority,
             recipient=self.party)
-        self.id_token_object = id_token 
+
+        self.id_token_object = id_token
         self.save()
         return self.id_token_object     # has "verified" fields
 
@@ -323,9 +295,9 @@ class AbstractSignOn(BaseModel):
         if self.user and self.user != user:
             raise Exception("Swapped user")
 
-        self.identity, created =  self.party.rp_identity_related.get_or_create(
+        self.identity, created = self.party.rp_identity_related.get_or_create(
             authority=self.authority,
-            party =self.party,
+            party=self.party,
             subject=self.subject,
             user=user)
 
@@ -337,24 +309,21 @@ class AbstractSignOn(BaseModel):
         self.user = user
         self.save()
 
-    class Meta:
-        abstract = True
 
-
-class AbstractScope(BaseModel):
+class Scope(BaseModel):
     scope = models.CharField(
         _(u'Scope'), max_length=250, unique=True,)
     authorities = models.ManyToManyField(
         'Authority', related_name=_RELATION)
 
-    def __unicode__(self):
-        return self.scope or "(scope)"
-
     class Meta:
         abstract = True
 
+    def __unicode__(self):
+        return self.scope or "(scope)"
 
-class AbstractToken(BaseModel):
+
+class Token(BaseModel):
     signon = models.ForeignKey('SignOn', related_name=_RELATION)
     token_hash = models.CharField(max_length=100)
     token = models.TextField()
